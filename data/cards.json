@@ -1,0 +1,99 @@
+{
+	"data": [
+		{
+			"name": "Basic Warrior",
+			"health":	40,
+			"attack":	30,
+			"defense":	10,
+			"cost":		0
+		},
+		{
+			"name": "Sturdy Warrior",
+			"health": 60,
+			"attack": 20,
+			"defense": 15,
+			"cost": 0
+		},
+		{
+			"name": "Deadly Warrior",
+			"health": 30,
+			"attack": 45,
+			"defense": 5,
+			"cost": 0
+		},
+		{
+			"name": "Skilled Warrior",
+			"health": 50,
+			"attack": 50,
+			"defense": 15,
+			"cost": 2
+		},
+		{
+			"name": "Legendary Warrior",
+			"health": 60,
+			"attack": 25,
+			"defense": 15,
+			"cost": 5
+		},
+		{
+			"name": "Basic Magician",
+			"health": 15,
+			"attack": 15,
+			"defense": 10,
+			"cost": 1,
+			"ability": {
+				"name": "Mana provider",
+				"type": "passive",
+				"description": "Every turn, this card provides 1 mana to its user"
+			}
+		},
+		{
+			"name": "Skilled Magician",
+			"health": 25,
+			"attack": 20,
+			"defense": 10,
+			"cost": 2,
+			"ability": {
+				"name": "Mana provider",
+				"type": "active",
+				"description": "Sacrifice one card on the board to get 2 mana"
+			}
+		},
+		{
+			"name": "Sumonner Magician",
+			"health": 25,
+			"attack": 15,
+			"defense": 10,
+			"cost": 0,
+			"ability": {
+				"name": "Summon",
+				"type": "active",
+				"description": "Once per turn, you might summon a \"Magic Spirit\" anywhere you want on your side of the board"
+			}
+		},
+		{
+			"name": "Basic Archer",
+			"health": 15,
+			"attack": 15,
+			"defense": 5,
+			"cost": 0,
+			"ability": {
+				"name": "Bullseye",
+				"type": "passive",
+				"description": "Can target any unit on the board"
+			}
+		},
+		{
+			"name": "Skilled Archer",
+			"health": 15,
+			"attack": 20,
+			"defense": 10,
+			"cost": 1,
+			"ability": {
+				"name": "Bullseye",
+				"type": "passive",
+				"description": "Can target any unit on the board"
+			}
+		}
+	]
+}

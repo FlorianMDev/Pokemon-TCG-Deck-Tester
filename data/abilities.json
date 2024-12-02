@@ -1,0 +1,12 @@
+{
+	"data": [
+		{
+			"name" : "Double Attack",
+			"effect" : "Attack twice in a single turn"
+		},
+		{
+			"name" : "Shield",
+			"effect" : "Protect from damages once"
+		}
+	]
+}
