@@ -16,8 +16,8 @@ export class CardInDeck {
 export class Card {
     constructor(data, instance) {
         this.id = data.id;
-        this._instance = instance;
         this._model = data;
+        this._instance = instance;
         this.damage = 0;
     }
     /* restoreDefault() {

@@ -1,4 +1,4 @@
-import {GameState, PlayerBoard, PlayerGraveyard, PlayerHand, Zone} from "../models/Board.js";
+import {GameState, PlayerBoard, PlayerDiscardPile, PlayerHand, Zone} from "../models/Board.js";
 
 export class BoardTemplate {
 	gameState!: GameState;

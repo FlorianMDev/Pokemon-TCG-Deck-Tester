@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 import { CardsApi } from "./api/Api.js";
 import { Config } from "./Config.js";
-import { Game } from "./Game.js";
+import { FreeGame, SemiRuledGame } from "./Game.js";
 import { Decklist } from "./models/Deck.js";
 export class App {
     constructor() {
@@ -31,7 +31,8 @@ export class App {
     fetchCards() {
         return __awaiter(this, void 0, void 0, function* () {
             // Fetch raw data (as CardDataType[])
-            this.cardList = yield this.cardApi.get();
+            this.cardList = yield this.cardApi.get(Config.displayedPerPage);
+            //render card list:
             // Map raw data into CardData instances
             /* for (let i in cardsData) {
                 this.cardList.push(new CardData(cardsData[i], +i + 1));
@@ -55,12 +56,15 @@ export class App {
         let savedCardList: string = JSON.stringify(this.cardList);
         localStorage.setItem("card-list", savedCardList);
     } */
-    startGame() {
+    startGame(mode) {
         //Change here when deck and difficulty selections are available
-        const game = new Game();
         const CPUDeck = new Decklist;
-        const difficultyMod = 1;
-        game.play(this._activeDeck, CPUDeck, this.username, difficultyMod);
+        let game = null;
+        if (mode === "semi-ruled")
+            game = new SemiRuledGame(this._activeDeck, CPUDeck, this.username);
+        else
+            game = new FreeGame(this._activeDeck, CPUDeck, this.username);
+        game.play();
     }
     main() {
         return __awaiter(this, void 0, void 0, function* () {

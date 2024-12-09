@@ -1,19 +1,16 @@
-import { Game } from "../Game.js";
 import { Deck } from "./Deck.js";
-import { PlayerHand, PlayerBoard, PlayerGraveyard } from "./Board.js";
+import { PlayerHand, PlayerBoard, PlayerDiscardPile } from "./Board.js";
 export class Player {
-    constructor(id, human, name, decklist, health) {
+    constructor(id, name, decklist) {
         this.id = id;
-        this.human = human;
         this.name = name;
-        this.health = health;
         this.defense = 0;
         this.mana = 0;
         this.active = false;
         this.deck = new Deck(decklist);
         this.hand = new PlayerHand;
         this.board = new PlayerBoard;
-        this.graveyard = new PlayerGraveyard;
+        this.DiscardPile = new PlayerDiscardPile;
     }
     set opponent(player) {
         this._opponent = player;
@@ -22,14 +19,14 @@ export class Player {
     }
     updateBoard() {
     }
-    updateGraveyard() {
+    updateDiscardPile() {
     }
     updateDeckCount() {
         const $deckCount = document.querySelector(`player-deck-count.player-${this.id}`);
         $deckCount.innerText = `cards in deck: ${this.deck.cards.length.toString()}`;
     }
     addListeners() {
-        if (this.human && this.active) {
+        if (this.active) {
         }
     }
     coinToss() {
@@ -41,7 +38,7 @@ export class Player {
     }
     draw() {
         if (this.deck.cards.length > 0) {
-            Game.addCard(this.deck.cards[0], this.hand);
+            this.hand.cards.push(this.deck.cards[0]);
             this.deck.cards.splice(0, 1);
             this.updateDeckCount();
         }
@@ -55,22 +52,14 @@ export class Player {
         this.updateBoard();
     }
     summonFromHand(card) {
-        if (this.mana >= card.cost) {
-            this.board.zones.forEach((z) => {
-                if (z.free) {
-                    const zone = document.querySelector(`player-board.player-${this.id} zone-${z.id}`);
-                    zone.addEventListener("click", (event) => {
-                        Game.RemoveCard(card, this.hand);
-                        this.hand.cards.filter((c) => c != card);
-                        this.summonCard(card, z.id);
-                    });
-                }
-            });
-        }
-    }
-    putDamage(damage) {
-        this.health -= damage;
-        if (this.health <= 0) {
-        }
+        this.board.zones.forEach((z) => {
+            if (z.free) {
+                const zone = document.querySelector(`player-board.player-${this.id} zone-${z.id}`);
+                zone.addEventListener("click", () => {
+                    this.hand.cards.filter((c) => c != card);
+                    this.summonCard(card, z.id);
+                });
+            }
+        });
     }
 }
