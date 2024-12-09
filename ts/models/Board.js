@@ -16,15 +16,21 @@ export class PlayerHand {
 }
 export class PlayerBoard {
     constructor() {
-        this.cards = [];
         this.size = Config.boardSize;
-        this.zones.length = this.size;
     }
     get zones() {
         for (let i = 1; i <= this.size; i++) {
             this._zones.push(new Zone(i));
         }
         return this._zones;
+    }
+    get cards() {
+        const cards = [];
+        for (let zone of this.zones) {
+            if (zone.free === false)
+                cards.push(zone.card);
+        }
+        return cards;
     }
 }
 export class Zone {

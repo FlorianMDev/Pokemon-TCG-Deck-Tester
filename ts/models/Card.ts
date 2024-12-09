@@ -2,65 +2,137 @@ import {Config, cardCount} from "../Config.js";
 import {Deck, Decklist} from "./Deck.js";
 import {Player} from "./Player.js";
 
-
-
-export interface RawCardDataType {
+//Custom types for card properties:
+interface AncientTrait {
 	name: string;
-	health: number;
-	attack: number;
-	defense: number;
-	cost: number;
-	ability?: Ability;
+	text: string;
+}
+interface Ability {
+	name: string;
+	text: string;
+	type: string;
+}
+interface Attack {
+	cost: string[];
+	name: string;
+	text: string;
+	damage: string;
+}
+interface Weakness {
+	type: string;
+	value:string;
+}
+interface Resistance {
+	type: string;
+	value:string;
 }
 
-export class CardData implements RawCardDataType {
-	private _id: number ;
-	name: string;
-	health: number;
-	attack: number;
-	defense: number;
-	cost: number;
-	ability?: Ability;
-
-	private _classes?: string[];
-	//private _deckCount: number;
-
-	constructor(data: RawCardDataType, id: number) {
-		this._id = id;
-		this.name = data.name;
-		this.health = data.health;
-		this.attack = data.attack;
-		this.defense = data.defense;
-		this.cost = data.cost;
-		this.ability = data.ability;
-		//this._deckCount = 0;
-	}
-	get classes (): string[] {
-		this._classes = [];
-		if (this.name.includes("Warrior")) {
-			this._classes.push("Warrior")
-		}
-		if (this.name.includes("Magician")) {
-			this._classes.push("Magician")
-		}
-		if (this.name.includes("Archer")) {
-			this._classes.push("Archer")
-		}
-		return this._classes;
-	}
-	get id() {
-		return this._id;
-	} 
-	set id(num: number) {
-		this._id = num;
-	} 
+interface Set {
+	id: string;
+	name: string
+	series: string;
+	printedTotal: number;
+	total: number;
+	legalities: Legalities;
+	ptcgoCode: string;
+	releaseDate: string;
+	updatedAt: string;
+	images: Image;
 }
 
-export class CardInDeck extends CardData {
+interface Legalities {
+	unlimited: string;
+	standard: string;
+	expanded: string;
+}
+
+interface Image {
+	small: string;
+	large: string;
+}
+
+interface TCGPlayer {
+	url: string;
+	updatedAt: string;
+	prices: TCGPlayerPrices;
+}
+interface TCGPlayerPrices {
+	normal: ContextPrice;
+	reverseHolofoil: ContextPrice;
+}
+interface ContextPrice {
+	low: number;
+	mid: number;
+	high: number;
+	market: number;
+	directLow: number;
+}
+
+interface CardMarket {
+	url: string;
+	updatedAt: string;
+	prices: CardMarketPrices;
+}
+interface CardMarketPrices {
+	averageSellPrice: number;
+	lowPrice: number;
+	trendPrice: number;
+	germanProLow?: number;
+	suggestedPrice?: number;
+	reverseHoloSell?: number;
+	reverseHoloLow?: number;
+	reverseHoloTrend?: number;
+	lowPriceExPlus: number;
+	avg1: number;
+	avg7: number;
+	avg30: number;
+	reverseHoloAvg1?: number;
+	reverseHoloAvg7?: number;
+	reverseHoloAvg30?: number;
+}
+
+
+export interface RawCardData {
+	id: string;
+	name: string
+	supertype: string
+	subtypes: string[];
+	level?: string;
+	hp: number;
+	types: string[];
+	evolvesFrom?: string
+	evolvesTo: string[];
+	rules?: string[];
+	ancientTrait?: AncientTrait[];
+	abilities?: Ability[];
+	attacks: Attack[];
+	weaknesses: Weakness[];
+	resistances: Resistance[];
+	retreatCost: string[];
+	set : Set;
+	number: string;
+	artist: string;
+	rarity: string;
+	flavorText: string;
+	nationalPokedexNumbers: number[];
+	legalities: Legalities;
+	images: Image[];
+	tcgplayer: TCGPlayer;
+	cardmarket: CardMarket;
+}
+
+export class CardInDeck{
 	private _deckCount: cardCount;
-	constructor(cardData: CardData, id: number = cardData.id) {		
-		super(cardData, id);
+	id: string;
+	name: string
+	supertype: string
+	subtypes: string[];
+	constructor (data: RawCardData) {
 		this._deckCount = 1;
+		this.id = data.id;
+		this.name = data.name
+		this.supertype = data.supertype;
+		this.subtypes = Array.from(data.subtypes);
 	}
 	get deckCount() {
 		return this._deckCount;
@@ -71,50 +143,25 @@ export class CardInDeck extends CardData {
 }
 
 export class Card {
-	id: number;
-	private _instance: number;
+	id: string;
 	private _model: CardInDeck;
-	name: string;
-	health: number;
-	attack: number;
-	defense: number;
-	cost: number;
-	ability?: Ability;
-	classes?: string[];
+	private _instance: number;	
+	damage: number;
 
 	constructor(data: CardInDeck, instance: number) {		
 		this.id = data.id;
-		this._instance = instance;
 		this._model = data;
-		this.name = data.name;
-		this.health = data.health;
-		this.attack = data.attack;
-		this.defense = data.defense;
-		this.cost = data.cost;
-		this.ability = data.ability;
-		this.classes = data.classes;
+		this._instance = instance;		
+		this.damage = 0;
 	}
-	restoreDefault() {
+	/* restoreDefault() {
 		Object.assign(this, new Card(this._model, this._instance));
-	}
+	} */
 	
-	attackTarget(target: Card | Player) {
-		if(this.attack > target.defense) {
-			const damage: number = this.attack - target.defense;
-			target.putDamage(damage);
-		}		
+	attackTarget(target: Card) {
 	}
 	putDamage(damage: number) {
-		this.health -= damage;
-	}	
-
-	addClass(newClass: string) {
-		this.classes?.push(newClass);
-	}
-	removeClass(classToRemove: string) {
-		if (this.classes?.includes(classToRemove)) {
-			this.classes.filter(c => c != classToRemove);
-		}
+		this.damage += damage;
 	}
 }
 

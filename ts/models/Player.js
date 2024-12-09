@@ -50,8 +50,8 @@ export class Player {
         this.draw();
         this.active = true;
     }
-    summonCard(card, zone) {
-        this.board.cards[zone - 1] = card;
+    summonCard(card, i) {
+        this.board.zones[i].card = card;
         this.updateBoard();
     }
     summonFromHand(card) {

@@ -7,13 +7,13 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { CardData } from "./models/Card.js";
-import { Api } from "./api/Api.js";
+import { CardsApi } from "./api/Api.js";
+import { Config } from "./Config.js";
 import { Game } from "./Game.js";
 import { Decklist } from "./models/Deck.js";
 export class App {
     constructor() {
-        this.cardApi = new Api("data/cards.json");
+        this.cardApi = new CardsApi(`${Config.ApiURI}/cards`);
         this.cardList = [];
         this.username = "";
         const activeDeck = localStorage.getItem("active-decklist");
@@ -31,11 +31,12 @@ export class App {
     fetchCards() {
         return __awaiter(this, void 0, void 0, function* () {
             // Fetch raw data (as CardDataType[])
-            const cardsData = yield this.cardApi.get();
+            this.cardList = yield this.cardApi.get();
             // Map raw data into CardData instances
-            for (let i in cardsData) {
+            /* for (let i in cardsData) {
                 this.cardList.push(new CardData(cardsData[i], +i + 1));
-            }
+                
+            } */
             console.log(this.cardList);
         });
     }
@@ -50,10 +51,10 @@ export class App {
             }
         });
     }
-    saveCardData() {
-        let savedCardList = JSON.stringify(this.cardList);
+    /* saveCardData(){
+        let savedCardList: string = JSON.stringify(this.cardList);
         localStorage.setItem("card-list", savedCardList);
-    }
+    } */
     startGame() {
         //Change here when deck and difficulty selections are available
         const game = new Game();
@@ -63,9 +64,9 @@ export class App {
     }
     main() {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.loadCardData();
+            yield this.fetchCards();
             //Add condition later
-            this.startGame();
+            //this.startGame();
         });
     }
 }

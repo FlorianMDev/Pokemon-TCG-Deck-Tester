@@ -1,16 +1,17 @@
-import {RawCardDataType, CardData} from "./models/Card.js";
-import {Api} from "./api/Api.js";
-import {Game} from "./Game.js";
+import {RawCardData} from "./models/Card.js";
+import {CardsApi} from "./api/Api.js";
+import {Config} from "./Config.js";
+import {Game, FreeGame, SemiRuledGame} from "./Game.js";
 import {Deck, Decklist} from "./models/Deck.js";
 
 export class App {
-	cardApi: Api;
-	cardList: CardData[];
+	cardApi: CardsApi;
+	cardList: RawCardData[];
 	username: string;
-	private _activeDeck: Decklist;	
+	private _activeDeck: Decklist;
 	
 	constructor() {
-		this.cardApi = new Api("data/cards.json");
+		this.cardApi = new CardsApi(`${Config.ApiURI}/cards`);
 		this.cardList = [];
 		this.username = "";
 		const activeDeck: string | null = localStorage.getItem("active-decklist");
@@ -26,12 +27,14 @@ export class App {
 
 	async fetchCards() {
 		// Fetch raw data (as CardDataType[])
-		const cardsData: RawCardDataType[] = await this.cardApi.get();
+		this.cardList = await this.cardApi.get(Config.displayedPerPage);
+		//render card list:
+
 		// Map raw data into CardData instances
-		for (let i in cardsData) {
+		/* for (let i in cardsData) {
 			this.cardList.push(new CardData(cardsData[i], +i + 1));
 			
-		}
+		} */
 		console.log(this.cardList);		
 	}	
 	async loadCardData(){
@@ -42,22 +45,26 @@ export class App {
 			this.cardList = JSON.parse(localStorageCardList);
 		}		
 	}
-	saveCardData(){
+	/* saveCardData(){
 		let savedCardList: string = JSON.stringify(this.cardList);
 		localStorage.setItem("card-list", savedCardList);
-	}
-	startGame() {
+	} */
+	startGame(mode: string) {
 		//Change here when deck and difficulty selections are available
-		const game = new Game();
 		const CPUDeck: Decklist = new Decklist;
-		const difficultyMod: number = 1;
-		game.play(this._activeDeck, CPUDeck, this.username, difficultyMod);
+		let game = null;
+		if (mode === "semi-ruled") game = new SemiRuledGame(this._activeDeck, CPUDeck, this.username);
+		else game = new FreeGame(this._activeDeck, CPUDeck, this.username);
+		
+		
+		
+		game!.play();
 	}
 	async main(){
-		await this.loadCardData();
+		await this.fetchCards();
 
 		//Add condition later
-		this.startGame();
+		//this.startGame();
 	}
 }
 

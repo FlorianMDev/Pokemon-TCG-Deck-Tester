@@ -1,4 +1,4 @@
-import {Card, CardData, CardInDeck} from "./Card.js";
+import {Card, RawCardData, CardInDeck} from "./Card.js";
 import {Config, cardCount} from "../Config.js";
 
 export class Decklist {
@@ -23,11 +23,11 @@ export class Decklist {
 	set deckCount(value) {
 		this._deckCount = value;		
 	} */
-	addCardToList(card: CardData) {
+	addCardToList(card: RawCardData) {
 		const existingCard: CardInDeck | void = this.cards.find(c => c.id = card.id);
 		
 		if (!!existingCard) {
-			if (existingCard.deckCount < Config.maxCardDeckCount) existingCard.deckCount ++;
+			if (existingCard.supertype === "energy" || existingCard.deckCount < Config.maxCardDeckCount) existingCard.deckCount ++;
 		} else {
 			this.cards.push(new CardInDeck(card));			
 		}	
@@ -36,7 +36,6 @@ export class Decklist {
 		const decklist: string = JSON.stringify(this)
 		localStorage.setItem(`decklist : ${decklist}`, decklist);
 	}
-	//saveDecklist
 }
 
 export class Deck {

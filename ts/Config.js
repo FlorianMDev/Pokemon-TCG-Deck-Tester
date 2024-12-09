@@ -1,9 +1,9 @@
 export class Config {
 }
-Config.maxDeckSize = 20;
+Config.ApiURI = "https://api.pokemontcg.io/v2";
+Config.maxDeckSize = 60;
 Config.minDeckSize = Config.maxDeckSize;
-Config.boardSize = 5;
-Config.playerHealth = 100;
-Config.maxMana = 10;
-Config.maxCardDeckCount = 3;
-Config.initialDraw = 4;
+Config.benchSize = 5;
+Config.maxCardDeckCount = 4;
+Config.initialDraw = 7;
+Config.displayedPerPage = 50;

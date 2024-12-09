@@ -1,9 +1,9 @@
 class Form {
-	$playerDeckSelector: HTMLSelectElement;
-	$CPUDeckSelector: HTMLSelectElement;
+	$player1DeckSelector: HTMLSelectElement;
+	$player2DeckSelector: HTMLSelectElement;
 	constructor() {
-		this.$playerDeckSelector = document.querySelector("select#player-deck")!;
-		this.$CPUDeckSelector = document.querySelector("select#cpu-deck")!;
+		this.$player1DeckSelector = document.querySelector("select#player-deck")!;
+		this.$player2DeckSelector = document.querySelector("select#cpu-deck")!;
 	}
 	loadDeckList() {
 		

@@ -18,16 +18,17 @@ export class Decklist {
     addCardToList(card) {
         const existingCard = this.cards.find(c => c.id = card.id);
         if (!!existingCard) {
-            if (existingCard.deckCount < Config.maxCardDeckCount)
+            if (existingCard.supertype === "energy" || existingCard.deckCount < Config.maxCardDeckCount)
                 existingCard.deckCount++;
         }
         else {
             this.cards.push(new CardInDeck(card));
         }
     }
-	saveToLocalStorage() {
-		localStorage.setItem(`decklist : ${decklist}`);
-	}
+    saveToLocalStorage() {
+        const decklist = JSON.stringify(this);
+        localStorage.setItem(`decklist : ${decklist}`, decklist);
+    }
 }
 export class Deck {
     constructor(deck) {

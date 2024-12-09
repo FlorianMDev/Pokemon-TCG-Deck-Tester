@@ -9,15 +9,15 @@ export class GameState {
 	player2Hand: PlayerHand;	
 	player1Board: PlayerBoard;
 	player2Board: PlayerBoard;	
-	player1Graveyard: PlayerGraveyard;
-	player2Graveyard: PlayerGraveyard;
+	player1DiscardPile: PlayerDiscardPile;
+	player2DiscardPile: PlayerDiscardPile;
 	constructor (player1: Player, player2: Player) {
 		this.player1Hand = player1.hand;
 		this.player2Hand = player2.hand;
 		this.player1Board = player1.board;
 		this.player2Board = player2.board;
-		this.player1Graveyard = player1.graveyard;
-		this.player2Graveyard = player2.graveyard;
+		this.player1DiscardPile = player1.DiscardPile;
+		this.player2DiscardPile = player2.DiscardPile;
 	}
 }
 export class PlayerHand {
@@ -32,7 +32,7 @@ export class PlayerBoard {
 	size: number;
 	private _zones!: Zone[];
 	constructor() {
-		this.size = Config.boardSize;
+		this.size = Config.benchSize;
 	}
 	get zones() {
 		for (let i:number = 1; i <= this.size; i++) {
@@ -59,7 +59,7 @@ export class Zone {
 	}
 }
 
-export class PlayerGraveyard {
+export class PlayerDiscardPile {
 	cards: Card[];
 	constructor() {
 		this.cards = [];

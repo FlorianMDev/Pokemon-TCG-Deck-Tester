@@ -1,12 +1,14 @@
-import {RawCardDataType} from "../models/Card";
+import {RawCardData} from "../models/Card";
+import {Config} from "../Config.js";
 
-export class Api {
+export class CardsApi {
 	private _url: string;
 	constructor(url: string) {
-		this._url = url;		
+		this._url = url;
 	}
-	async get(): Promise<RawCardDataType[]> {
-		return fetch(this._url)
+
+	async get(displayedPerPage: number, filter?: string): Promise<RawCardData[]> {
+		return fetch(`${this._url}/?pageSize=${displayedPerPage}${filter}`)
 			.then(res => res.json())
 			.then(res => res.data)
 			.catch(err => {

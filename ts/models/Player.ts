@@ -1,28 +1,24 @@
 import {Game} from "../Game.js";
 import {Deck, Decklist} from "./Deck.js";
 import {Card} from "./Card.js";
-import {PlayerHand, PlayerBoard, PlayerGraveyard, Zone} from "./Board.js";
+import {PlayerHand, PlayerBoard, PlayerDiscardPile, Zone} from "./Board.js";
 import {ZoneTemplate} from "../templates/BoardTemplate.js";
 
 export class Player {
 	id: number;
 	name: string;
-    health: number;
 	defense: number;
 	mana: number;
 	active: boolean;
-	human: boolean;
 	private _opponent!: Player;
 	
 	deck: Deck;
 	hand: PlayerHand;
 	board: PlayerBoard;	
-	graveyard: PlayerGraveyard;
-	constructor(id: number, human: boolean, name: string, decklist: Decklist, health: number) {
+	DiscardPile: PlayerDiscardPile;
+	constructor(id: number, name: string, decklist: Decklist) {
 		this.id = id;
-		this.human = human;
 		this.name = name;
-    	this.health = health;
 		this.defense = 0;
 		this.mana = 0;
 		this.active = false;
@@ -30,7 +26,7 @@ export class Player {
 		this.deck = new Deck(decklist);
 		this.hand = new PlayerHand;
 		this.board = new PlayerBoard;
-		this.graveyard = new PlayerGraveyard;
+		this.DiscardPile = new PlayerDiscardPile;
 	}
 
 	set opponent(player: Player) {
@@ -44,7 +40,7 @@ export class Player {
 	updateBoard() {
 
 	}
-	updateGraveyard() {
+	updateDiscardPile() {
 
 	}
 	updateDeckCount() {
@@ -53,7 +49,7 @@ export class Player {
 	}
 
 	addListeners() {
-		if (this.human && this.active) {
+		if (this.active) {
 
 		}
 	}
@@ -67,7 +63,7 @@ export class Player {
 	}
 	draw() {
 		if (this.deck.cards.length > 0) {
-			Game.addCard(this.deck.cards[0], this.hand);
+			this.hand.cards.push(this.deck.cards[0]);
 			this.deck.cards.splice(0, 1);
 			this.updateDeckCount();
 		}
@@ -82,27 +78,14 @@ export class Player {
 		this.updateBoard();
 	}
 	summonFromHand(card: Card) {
-		if (this.mana >= card.cost) {
-			this.board.zones.forEach((z) => {
-				if (z.free) {
-					const zone = document.querySelector(`player-board.player-${this.id} zone-${z.id}`);
-					zone!.addEventListener("click", (event: Event) => {
-						Game.RemoveCard(card, this.hand);
-						this.hand.cards.filter((c: Card) => c != card);
-						this.summonCard(card, z.id);						
-					})
-				}				
-			})			
-		}
-	}
-	putDamage(damage: number) {
-		this.health -= damage;
-		if (this.health <= 0) {
-		}
-	}
-
-	
-
-
-	
+		this.board.zones.forEach((z) => {
+			if (z.free) {
+				const zone = document.querySelector(`player-board.player-${this.id} zone-${z.id}`);
+				zone!.addEventListener("click", () => {
+					this.hand.cards.filter((c: Card) => c != card);
+					this.summonCard(card, z.id);						
+				})
+			}				
+		})
+	}	
 }
