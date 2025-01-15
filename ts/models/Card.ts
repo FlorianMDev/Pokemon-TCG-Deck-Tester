@@ -27,7 +27,7 @@ interface Resistance {
 	value:string;
 }
 
-interface Set {
+export interface Set {
 	id: string;
 	name: string
 	series: string;
@@ -37,7 +37,12 @@ interface Set {
 	ptcgoCode: string;
 	releaseDate: string;
 	updatedAt: string;
-	images: Image;
+	images: SetImages;
+}
+
+interface SetImages {
+	logo: string;
+	symbol: string;
 }
 
 interface Legalities {
@@ -46,7 +51,7 @@ interface Legalities {
 	expanded: string;
 }
 
-interface Image {
+interface Images {
 	small: string;
 	large: string;
 }
@@ -109,6 +114,7 @@ export interface RawCardData {
 	weaknesses: Weakness[];
 	resistances: Resistance[];
 	retreatCost: string[];
+	convertedRetreatCost: number,
 	set : Set;
 	number: string;
 	artist: string;
@@ -116,10 +122,56 @@ export interface RawCardData {
 	flavorText: string;
 	nationalPokedexNumbers: number[];
 	legalities: Legalities;
-	images: Image[];
+	images: Images;
 	tcgplayer: TCGPlayer;
 	cardmarket: CardMarket;
 }
+
+export class CardData {
+	id: string;
+	name: string;
+	supertype: string;
+	subtypes: string[];
+	hp: number;
+	types: string[];
+	rules?: string[];
+	ancientTrait?: AncientTrait[];
+	abilities?: Ability[];
+	attacks: Attack[];
+	weaknesses: Weakness[];
+	resistances: Resistance[];
+	convertedRetreatCost: number;
+	set : string;
+	rarity: string;
+	legality: string;
+	images: Images;
+	avgPrice: number;
+
+	deckCount: number;
+	constructor(data: RawCardData) {
+		this.id = data.id
+		this.name = data.name;
+		this.supertype = data.supertype
+		this.subtypes = data.subtypes;
+		this.hp = data.hp;
+		this.types = data.types;
+		this.rules = data.rules;
+		this.ancientTrait = data.ancientTrait;
+		this.abilities = data.abilities;
+		this.attacks = data.attacks;
+		this.weaknesses = data.weaknesses;
+		this.resistances = data.resistances;
+		this.convertedRetreatCost = data.convertedRetreatCost;
+		this.set = `${data.set.id} - ${data.set.name}`;
+		this.rarity = data.rarity;
+		this.legality = data.legalities.standard;
+		this.images = data.images;
+		this.avgPrice = data.cardmarket.prices.averageSellPrice;
+		this.deckCount = 0;
+	}
+}
+
+
 
 export class CardInDeck{
 	private _deckCount: cardCount;
@@ -127,7 +179,7 @@ export class CardInDeck{
 	name: string
 	supertype: string
 	subtypes: string[];
-	constructor (data: RawCardData) {
+	constructor (data: CardData) {
 		this._deckCount = 1;
 		this.id = data.id;
 		this.name = data.name

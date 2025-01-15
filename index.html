@@ -4,14 +4,23 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Document</title>
+	<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+	<link rel="stylesheet" href="/css/main.css">
 </head>
 <body>
-	<header></header>
 	<main>
-		<section class="cards-data">
-
-		</section>
+		<div class="page-manager center" id="p-m-up"></div>
+		
+		<div class="content">
+			<div id="filter-div"></div>
+			<section class="cards-data center"></section>
+			<div class="modal"></div>			
+		</div>
+		<div class="page-manager center" id="p-m-bottom"></div>
+		<div class="card-modal"></div>
+		
 	</main>
+	
 	<!-- <div>
 		<select name="player-deck" id="player-deck">
 
@@ -23,13 +32,19 @@
 	<div id="board">
 		<p></p>
 	</div> -->
+	<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+	<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
 	<script> var exports = {}; </script>
+	<script type="module" src="/key.js"></script>
 	<script type="module" src="/ts/api/Api.js"></script>
 	<script type="module" src="/ts/models/Board.js"></script>
 	<script type="module" src="/ts/models/Card.js"></script>
 	<script type="module" src="/ts/models/Deck.js"></script>
 	<script type="module" src="/ts/models/Player.js"></script>
 	<script type="module" src="/ts/Game.js"></script>
-	<script type="module" src="/ts/Index.js"></script>
+	<script type="module" src="/ts/App.js"></script>
+	<script type="module" src="/ts/templates/CardModal.js"></script>
+	<script type="module" src="/ts/templates/CardTemplate.js"></script>	
+	<script type="module" src="/ts/templates/PageManager.js"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-import {Card, RawCardData, CardInDeck} from "./Card.js";
+import {Card, CardData, CardInDeck} from "./Card.js";
 import {Config, cardCount} from "../Config.js";
 
 export class Decklist {
@@ -23,7 +23,7 @@ export class Decklist {
 	set deckCount(value) {
 		this._deckCount = value;		
 	} */
-	addCardToList(card: RawCardData) {
+	addCardToList(card: CardData) {
 		const existingCard: CardInDeck | void = this.cards.find(c => c.id = card.id);
 		
 		if (!!existingCard) {

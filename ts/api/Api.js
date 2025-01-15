@@ -7,13 +7,24 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-export class CardsApi {
+import { Config } from "../Config.js";
+export class Api {
     constructor(url) {
         this._url = url;
     }
-    get(displayedPerPage, filter) {
+    getCards(displayedPerPage, page, filters) {
         return __awaiter(this, void 0, void 0, function* () {
-            return fetch(`${this._url}/?pageSize=${displayedPerPage}${filter}`)
+            return fetch(`${this._url}/cards?pageSize=${displayedPerPage}&page=${page}&q=${Config.legalities}${filters !== null && filters !== void 0 ? filters : ""}`, { headers: Config.headers })
+                .then(res => res.json())
+                .catch(err => {
+                console.log('an error occurs', err);
+                return [];
+            });
+        });
+    }
+    getProperty(property) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return fetch(`${this._url}/${property}`, { headers: Config.headers })
                 .then(res => res.json())
                 .then(res => res.data)
                 .catch(err => {

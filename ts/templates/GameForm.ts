@@ -1,4 +1,4 @@
-class Form {
+class GameForm {
 	$player1DeckSelector: HTMLSelectElement;
 	$player2DeckSelector: HTMLSelectElement;
 	constructor() {

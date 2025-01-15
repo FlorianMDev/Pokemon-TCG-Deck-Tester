@@ -3,7 +3,7 @@ import {Deck, Decklist} from "./models/Deck.js";
 import {Player} from "./models/Player.js";
 import {PlayerHand, PlayerBoard, PlayerDiscardPile} from "./models/Board.js";
 import {Config} from "./Config.js";
-import {App} from "./Index.js";
+import {App} from "./App.js";
 
 export class Game {
 	$board: HTMLElement;
