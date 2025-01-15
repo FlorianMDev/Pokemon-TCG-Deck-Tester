@@ -1,6 +1,0 @@
--s'assurer que les cartes restent à leur emplacement et ne se déplacent pas lorsque le board change
-exemple : Si il y a 1 carte dans les emplacements 1, 2, 3 et 4, que la carte à l'emplacement 3 est retirée, il faut que la carte à l'emplacement 3 reste à l'emplacement 3
-Solutions :
--object null/void?
--propriété zones1, zone2,[...]zone 5
--objet placeholder
