@@ -49,7 +49,12 @@ export class App {
 		this._deckMenu = state;
 	} */
 	displayCards() {
-		this.$cardTemplatesWrapper.innerHTML = "";	
+		this.$cardTemplatesWrapper.innerHTML = "";
+
+		const $modalWrapper: HTMLDivElement = document.querySelector('.card-modal')!;
+		$modalWrapper.innerHTML = '';
+		$modalWrapper.classList.remove("modal-on");
+
 		this.cardList.forEach((card: RawCardData | CardData) =>{
 			let cardTemplate: CardTemplate = new CardTemplate(card);
 			const $cardTemplate: HTMLDivElement = cardTemplate.createHTMLCard();			
@@ -63,6 +68,8 @@ export class App {
 		this.displayCards();
 		this.$pageManagers.forEach((pm: PageManager) => {			
 			pm.$pageSelectorInput.max = `${this.apiTotalPages!}`;
+			console.log(pm);		
+			console.log(pm.$pageSelectorInput);			
 		})
 	}
 	
@@ -134,12 +141,13 @@ export class App {
 				}
 			})
 			pm.$pageSelectorBtn.addEventListener('click', async function(event: Event) {
-				//event.preventDefault();
+				event.preventDefault();
 				const value: number = Number(pm.$pageSelectorInput.value);
 				if (value < 1) that.page = 1;
 				else if (value > that.apiTotalPages!) that.page = that.apiTotalPages!;
 				else that.page = value;			
 				await that.updatePage();
+				
 			})
 		})
 	}

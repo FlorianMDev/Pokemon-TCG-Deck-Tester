@@ -8,7 +8,6 @@ export class CardModal {
     createModalContent(cardData) {
         this.$modalWrapper.innerHTML = "";
         const modalContent = `
-            <div class="card-modal">
 			<div class="card-picture">			
             	<img
 					id="${cardData.id}"
@@ -17,7 +16,6 @@ export class CardModal {
 				/>
 				</div> 
                 <button type="button" class="close-btn">X<button>
-            </div>
         `;
         this.$wrapper.innerHTML = modalContent;
         this.$modalWrapper.classList.add('modal-on');

@@ -1,1 +1,1 @@
-export declare const key: string;
+//export declare const key: string;

@@ -33,6 +33,13 @@ export class FilterForm {
     }
     initializeFilterFields() {
         this.createResetBtn();
+        const filterLegality = new FilterField('filter-legality', 'checkbox');
+        filterLegality.$formWrapper.innerHTML = `
+			<label for="Legal">Legal in standard format</label>
+			<input type="checkbox" id="Legal" name="Legal">
+		`;
+        //this.createCheckboxFilter('filter-legality', 'Legality in standard format', ['Legal']);
+        this._filterFields.push(filterLegality);
         const filterName = this.createInputFilter('filter-name', 'Search by name');
         this._filterFields.push(filterName);
         const filterSupertype = this.createSelectFilter('filter-supertype', 'Filter by supertype', this.cardProperties.supertypes);
@@ -50,8 +57,6 @@ export class FilterForm {
         const filterRetreatCost = this.createCheckboxFilter('filter-convertedRetreatCost', 'Filter by retreat cost', ['0', '1', '2', '3', '4', '5']);
         filterRetreatCost.field.setAttribute("size", '2');
         this._filterFields.push(filterRetreatCost);
-        /* const filterRetreatCost: FilterField = this.createInputFilter('filter-convertedRetreatCost', 'Filter by retreat cost', 'number');
-        this._filterFields.push(filterRetreatCost); */
         const filterSets = this.createInputFilter('filter-set', 'Search by sets');
         this._filterFields.push(filterSets);
         const filterRarities = this.createSelectFilter('filter-rarity', 'Filter by rarity', this.cardProperties.rarities);
@@ -178,6 +183,8 @@ export class FilterForm {
     }
     convertToQuery(property, requested) {
         switch (property) {
+            case "filter-legality":
+                return `legalities.standard:"${requested}"`;
             case "filter-name":
                 return `${`${property}`.replace('filter-', '')}:"*${requested}*"`;
             case "filter-set":
@@ -207,6 +214,13 @@ export class FilterForm {
                     return;
                 this.filters += this.multipleQueries(ff, checkedInputs);
             }
+            else if (ff.type === "checkbox") {
+                console.log(ff);
+                const input = ff.$formWrapper.querySelector(`input:checked`);
+                if (!!input) {
+                    this.filters += ` ${this.convertToQuery(ff.id, input.id)}`;
+                }
+            }
             else {
                 if (!!ff.field.value) {
                     if (ff.field.multiple === false) {
@@ -233,7 +247,7 @@ class FilterField {
     constructor(id, type) {
         this.id = id;
         this.$formWrapper = document.createElement('div');
-        this.$formWrapper.classList.add(`${id}-wrapper`);
+        this.$formWrapper.classList.add(`${id}-wrapper`, "filter-field");
         this.type = type;
     }
     get $label() {

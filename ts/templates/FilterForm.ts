@@ -52,6 +52,15 @@ export class FilterForm {
 	initializeFilterFields() {
 		this.createResetBtn();
 
+		const filterLegality = new FilterField('filter-legality', 'checkbox');
+		filterLegality.$formWrapper.innerHTML = `
+			<label for="Legal">Legal in standard format</label>
+			<input type="checkbox" id="Legal" name="Legal">
+		`;
+
+		//this.createCheckboxFilter('filter-legality', 'Legality in standard format', ['Legal']);
+		this._filterFields.push(filterLegality);
+
 		const filterName: FilterField = this.createInputFilter('filter-name', 'Search by name');
 		this._filterFields.push(filterName);
 
@@ -76,9 +85,6 @@ export class FilterForm {
 		const filterRetreatCost: FilterField = this.createCheckboxFilter('filter-convertedRetreatCost', 'Filter by retreat cost', ['0', '1', '2', '3', '4', '5']);
 		filterRetreatCost.field.setAttribute("size", '2');
 		this._filterFields.push(filterRetreatCost);
-
-		/* const filterRetreatCost: FilterField = this.createInputFilter('filter-convertedRetreatCost', 'Filter by retreat cost', 'number');
-		this._filterFields.push(filterRetreatCost); */
 
 		const filterSets: FilterField = this.createInputFilter('filter-set', 'Search by sets');
 		this._filterFields.push(filterSets);
@@ -212,6 +218,8 @@ export class FilterForm {
 	}
 	convertToQuery(property: string, requested: string):string {
 		switch (property) {
+			case "filter-legality" :
+				return `legalities.standard:"${requested}"`;
 			case "filter-name" :
 				return `${`${property}`.replace('filter-','')}:"*${requested}*"`;
 			case "filter-set" :
@@ -239,6 +247,12 @@ export class FilterForm {
 				console.log(checkedInputs);
 				if (checkedInputs.length < 1) return;
 				this.filters += this.multipleQueries(ff, checkedInputs);
+			}
+			else if (ff.type === "checkbox") {
+				const input: HTMLElement | null = ff.$formWrapper.querySelector(`input:checked`);
+				if (!!input) {
+					this.filters += ` ${this.convertToQuery(ff.id, input.id)}`
+				}
 			}
 			else {
 				if (!!ff.field.value) {
@@ -284,7 +298,7 @@ class FilterField {
     constructor(id: string, type: string) {
         this.id = id;
         this.$formWrapper = document.createElement('div');
-        this.$formWrapper.classList.add(`${id}-wrapper`);
+        this.$formWrapper.classList.add(`${id}-wrapper`, "filter-field");
 		this.type = type;
     }
 

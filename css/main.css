@@ -49,9 +49,8 @@ div.page-manager span.page-count {
 
 div#filter-div {
 	justify-content: center;
-	min-width: 18vw;
+	min-width: 20vw;
 	padding: 1rem;
-	margin:0 auto;
 	border-right: 3px solid black;
 }
 
@@ -62,6 +61,12 @@ button.submit-filters {
 button.reset-filters {
 	padding: 0.5rem;
 	margin: 1rem auto;
+}
+
+
+div.filter-field{
+	padding: 1rem 0;
+	border-bottom: 1px rgb(87, 87, 87) dashed;
 }
 
 div#filter-div select#filter-convertedRetreatCost {
@@ -92,7 +97,6 @@ div#filter-div fieldset#filter-convertedRetreatCost{
 	display: inline-block;
 }
 div#filter-div fieldset#filter-convertedRetreatCost div{
-
 	display: inline-block;
 }
 
@@ -106,7 +110,6 @@ div#filter-div fieldset#filter-convertedRetreatCost div{
 .ui-slider-handle {
 	background: rgb(0, 120, 226);
 }
-
 
 section.cards-data {
     margin: 0;
@@ -142,24 +145,37 @@ section.cards-data {
 
 
 /* Modal */
+.modal-on {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    background-color: rgba(255, 255, 255, .7);
+    overflow: hidden;
+}
 .card-modal-wrapper {
     position: absolute;
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
 }
-
-.card-modal {
-    position: relative;
+.card-picture {
+	position: relative;
+}
+.card-picture img{
+	max-height: 80vh;
 }
 
 .close-btn {
     position: absolute;
-    bottom: -40px;
+    top: -3rem;
     left: 50%;
+	font-size: 1.5rem;
+	font-weight: bold;
     transform: translateX(-50%);
-    background-color: #333;
-    color: #eee;
+    background-color: #ff0000;
+    color: #ffffff;
     border: 1px solid #333;
     border-radius: 8px;
     height: 36px;
