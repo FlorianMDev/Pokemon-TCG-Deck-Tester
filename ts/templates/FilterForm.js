@@ -215,7 +215,6 @@ export class FilterForm {
                 this.filters += this.multipleQueries(ff, checkedInputs);
             }
             else if (ff.type === "checkbox") {
-                console.log(ff);
                 const input = ff.$formWrapper.querySelector(`input:checked`);
                 if (!!input) {
                     this.filters += ` ${this.convertToQuery(ff.id, input.id)}`;

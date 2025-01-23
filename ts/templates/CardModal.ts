@@ -2,7 +2,7 @@ import { RawCardData, CardData } from "../models/Card.js";
 
 export class CardModal {
 	$wrapper: HTMLElement;
-	$modalWrapper: HTMLElement;
+	$modalWrapper: HTMLDivElement;
 
 	constructor(cardData: RawCardData | CardData) {
 		this.$wrapper = document.createElement('div');
@@ -38,9 +38,10 @@ export class CardModal {
 	onCloseButton() {
         this.$wrapper
             .querySelector('.close-btn')!
-            .addEventListener('click', () => {
-                this.$modalWrapper.classList.remove('modal-on');
-                this.$modalWrapper.innerHTML = "";
-            })
+            .addEventListener('click', () => CardModal.closeModal(this.$modalWrapper));
     }
+	static closeModal(modal: HTMLDivElement) {
+		modal.classList.remove('modal-on');
+		modal.innerHTML = "";
+	}
 }

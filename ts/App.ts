@@ -8,6 +8,7 @@ import { PageManager } from "./templates/PageManager.js";
 import { FilterForm } from "./templates/FilterForm.js";
 import { CardProperties } from "./CardProperties.js";
 import { cardWithModal } from "./decorators/CardWithModal.js";
+import { CardModal } from "./templates/CardModal.js";
 
 export class App {
 	api: Api;
@@ -52,8 +53,7 @@ export class App {
 		this.$cardTemplatesWrapper.innerHTML = "";
 
 		const $modalWrapper: HTMLDivElement = document.querySelector('.card-modal')!;
-		$modalWrapper.innerHTML = '';
-		$modalWrapper.classList.remove("modal-on");
+		CardModal.closeModal($modalWrapper);
 
 		this.cardList.forEach((card: RawCardData | CardData) =>{
 			let cardTemplate: CardTemplate = new CardTemplate(card);

@@ -7,7 +7,6 @@ headers.append("Authorization", `token ${key}`);
 export class Config {
 	static ApiURI:string = "https://api.pokemontcg.io/v2";
 	static regulationMark = "(regulationMark:F OR regulationMark:G OR regulationMark:H)";
-	static legalities = "legalities.standard:Legal";
 	static headers = headers;
 	static maxDeckSize = 60;
 	static minDeckSize = Config.maxDeckSize;

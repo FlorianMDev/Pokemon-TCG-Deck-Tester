@@ -16,6 +16,9 @@ body {
 	flex-direction: row;
 }
 
+
+/* PAGE MANAGER */
+
 div.page-manager#p-m-up {
 	border-bottom: 2px black solid;
 	padding-bottom: 1rem;
@@ -47,9 +50,18 @@ div.page-manager span.page-count {
 	padding: 0.5rem 0;	
 }
 
+
+
+
+/* FILTERS */
+
+div#filter-div div.select-container {
+	position: relative;
+}
+
 div#filter-div {
 	justify-content: center;
-	min-width: 20vw;
+	min-width: 18rem;
 	padding: 1rem;
 	border-right: 3px solid black;
 }
@@ -72,9 +84,7 @@ div.filter-field{
 div#filter-div select#filter-convertedRetreatCost {
 	white-space: normal;
 }
-div#filter-div div.select-container {
-	position: relative;
-}
+
 div#filter-div button.toggle-expand {
 	/* position: absolute; */
 	top: 0;
@@ -111,6 +121,60 @@ div#filter-div fieldset#filter-convertedRetreatCost div{
 	background: rgb(0, 120, 226);
 }
 
+
+
+
+
+/* MODAL */
+
+div.center-div {
+	position: relative;
+	height: 100vh;
+	overflow: scroll;
+	/* transform: translate(0); */
+}
+
+.modal-on {
+    position: fixed;
+    height: 90vh;
+    width: 35%;
+	left: 50%;
+	transform: translateX(-50%);
+	bottom: 0;
+    background-color: rgba(219, 219, 219, 0.8);
+}
+.card-modal-wrapper {
+    position: absolute;
+    bottom: 1rem;
+	left: 50%;
+	transform: translateX(-50%);
+    bottom: 0;
+}
+.modal-on .card-picture img{
+	position: relative;
+	max-height: 80vh;
+}
+
+.modal-on .close-btn {
+    position: absolute;
+    top: -2rem;
+    left: 50%;
+	font-size: 1.5rem;
+	font-weight: bold;
+    transform: translateX(-50%);
+    background-color: #ff0000;
+    color: #ffffff;
+    border: 1px solid #333;
+    border-radius: 8px;
+    height: 2rem;
+    width: 6rem;
+    transition: .4s;
+    cursor: pointer;
+}
+
+
+/* CARD DETAILS */
+
 section.cards-data {
     margin: 0;
 	padding: 0;
@@ -122,12 +186,13 @@ section.cards-data {
 .cards-data .card-template{	
     margin-left: 0.5rem;
     margin-right: 0.5rem;
+	max-width: 22.5%;
+	min-width: 13vw;
 }
 
-.cards-data .card-template img {
-    max-width: 18vw;
-	min-width: 14vw;
-    object-fit: cover;
+.cards-data .card-picture img { 
+	width: 100%;  
+    object-fit: contain;
 	border-radius: 1vw;
     box-shadow: 4px 5px 5px rgba(51, 51, 51, 50%);
 }
@@ -144,42 +209,9 @@ section.cards-data {
 }
 
 
-/* Modal */
-.modal-on {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 100%;
-    background-color: rgba(255, 255, 255, .7);
-    overflow: hidden;
-}
-.card-modal-wrapper {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-}
-.card-picture {
-	position: relative;
-}
-.card-picture img{
-	max-height: 80vh;
-}
 
-.close-btn {
-    position: absolute;
-    top: -3rem;
-    left: 50%;
-	font-size: 1.5rem;
-	font-weight: bold;
-    transform: translateX(-50%);
-    background-color: #ff0000;
-    color: #ffffff;
-    border: 1px solid #333;
-    border-radius: 8px;
-    height: 36px;
-    width: 200px;
-    transition: .4s;
-    cursor: pointer;
-}
+
+
+
+
+

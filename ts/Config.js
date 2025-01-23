@@ -5,7 +5,6 @@ export class Config {
 }
 Config.ApiURI = "https://api.pokemontcg.io/v2";
 Config.regulationMark = "(regulationMark:F OR regulationMark:G OR regulationMark:H)";
-Config.legalities = "legalities.standard:Legal";
 Config.headers = headers;
 Config.maxDeckSize = 60;
 Config.minDeckSize = Config.maxDeckSize;

@@ -28,9 +28,10 @@ export class CardModal {
     onCloseButton() {
         this.$wrapper
             .querySelector('.close-btn')
-            .addEventListener('click', () => {
-            this.$modalWrapper.classList.remove('modal-on');
-            this.$modalWrapper.innerHTML = "";
-        });
+            .addEventListener('click', () => CardModal.closeModal(this.$modalWrapper));
+    }
+    static closeModal(modal) {
+        modal.classList.remove('modal-on');
+        modal.innerHTML = "";
     }
 }
