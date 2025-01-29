@@ -11,6 +11,7 @@ export class FilterForm {
 	$submitBtn: HTMLButtonElement;
 	filters: string;
 	private _cardProperties: CardProperties | null;
+	
     constructor() {
 		this.$wrapper = document.querySelector('div#filter-div')!;
 		
@@ -19,8 +20,10 @@ export class FilterForm {
 		this.$wrapper.appendChild(this.$filterFieldsDiv);
 
 		this.$submitBtn = document.createElement('button');
-		this.$filterFieldsDiv.appendChild(this.$submitBtn);		
-		this.$submitBtn.outerHTML = `<button type="button" class="submit-filters">Search with these filters</button>`;
+		this.$submitBtn.type = "button";
+		this.$submitBtn.classList.add("submit-filters");
+		this.$submitBtn.textContent = "Search with these filters";
+		this.$filterFieldsDiv.appendChild(this.$submitBtn);	
 
 		this.$formWrapper = document.createElement('form')!;
 		this.$formWrapper.id = 'filter-form';
@@ -28,10 +31,11 @@ export class FilterForm {
 
 		
 
-		this._filterFields = [];		
-		console.log(this.$submitBtn);
+		this._filterFields = [];
 		this.filters = "";
-		this._cardProperties = null;		
+		this._cardProperties = null;
+		console.log("filter-form created");
+			
     }	
 	set cardProperties(cardProperties: CardProperties) {
 		console.log('setting card properties');		
@@ -191,7 +195,7 @@ export class FilterForm {
 				<input type="checkbox" id="${op}" name="${op}"/>
 				<label for="${op}">${op}</label>
 			</div>`
-		})		
+		})
 		return filter;
 	}
 	expandOrReduceField(btn: HTMLButtonElement, filter: FilterField, options: string[]) {

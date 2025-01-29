@@ -5,6 +5,7 @@
 body {
     font-family: 'Open Sans', sans-serif;
     color: #333;
+	margin: 0;
 }
 
 .center {
@@ -21,7 +22,7 @@ body {
 
 div.page-manager#p-m-up {
 	border-bottom: 2px black solid;
-	padding-bottom: 1rem;
+	padding: 1rem 0;
 }
 div.page-manager#p-m-bottom {
 	border-top: 2px black solid;
@@ -50,8 +51,12 @@ div.page-manager span.page-count {
 	padding: 0.5rem 0;	
 }
 
-
-
+/* STATE MANAGER */
+div.state-manager {
+	border-bottom: 2px solid black;
+	text-align: center;
+	padding: 0.75rem 0;
+}
 
 /* FILTERS */
 
@@ -126,7 +131,21 @@ div#filter-div fieldset#filter-convertedRetreatCost div{
 
 
 /* MODAL */
+.modal-on {
+	z-index: 3;
+}
+/* DECKLIST MODAL */
 
+#decklist-manager.modal-on {
+	position: fixed;
+	top:0;
+	left:0;
+	background-color: white;
+	height: 100%;
+	width: 100%;
+}
+
+/* CARD MODALS */
 div.center-div {
 	position: relative;
 	height: 100vh;
@@ -134,10 +153,11 @@ div.center-div {
 	/* transform: translate(0); */
 }
 
-.modal-on {
+.card-modal.modal-on {
     position: fixed;
     height: 90vh;
-    width: 35%;
+	min-height: 40vh;
+    min-width: 40%;
 	left: 50%;
 	transform: translateX(-50%);
 	bottom: 0;
@@ -150,12 +170,16 @@ div.center-div {
 	transform: translateX(-50%);
     bottom: 0;
 }
-.modal-on .card-picture img{
+.card-modal.modal-on .card-picture img{
 	position: relative;
 	max-height: 80vh;
+	max-width: 35vw;
 }
+/* .modal-on .card-picture{
+	margin: 3rem 2rem;
+} */
 
-.modal-on .close-btn {
+.card-modal.modal-on .close-btn {
     position: absolute;
     top: -2rem;
     left: 50%;

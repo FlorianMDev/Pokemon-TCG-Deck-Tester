@@ -189,7 +189,7 @@ export class CardInDeck{
 	get deckCount() {
 		return this._deckCount;
 	}
-	set deckCount(value) {
+	set deckCount(value:cardCount) {
 		this.deckCount = value;
 	}
 }
