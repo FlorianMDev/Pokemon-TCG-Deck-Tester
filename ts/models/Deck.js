@@ -25,6 +25,14 @@ export class Decklist {
             this.cards.push(new CardInDeck(card));
         }
     }
+    RemoveCardFromList(card) {
+        if (card.deckCount > 0) {
+            if (card.deckCount > 1)
+                card.deckCount--;
+            if (card.deckCount === 1)
+                this.cards = this.cards.filter(c => c != card);
+        }
+    }
     saveToLocalStorage() {
         const decklist = JSON.stringify(this);
         localStorage.setItem(`decklist : ${decklist}`, decklist);
@@ -56,6 +64,6 @@ export class Deck {
     }
     RemoveCard(card) {
         if (this.cards.length > 0)
-            this.cards.filter(c => c != card);
+            this.cards = this.cards.filter(c => c != card);
     }
 }

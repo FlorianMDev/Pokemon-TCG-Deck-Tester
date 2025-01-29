@@ -1,4 +1,4 @@
-import {Card, CardData, CardInDeck} from "./Card.js";
+import {Card, RawCardData, CardInDeck} from "./Card.js";
 import {Config, cardCount} from "../Config.js";
 
 export class Decklist {
@@ -23,7 +23,7 @@ export class Decklist {
 	set deckCount(value) {
 		this._deckCount = value;		
 	} */
-	addCardToList(card: CardData) {
+	addCardToList(card: RawCardData) {
 		const existingCard: CardInDeck | void = this.cards.find(c => c.id = card.id);
 		
 		if (!!existingCard) {
@@ -31,6 +31,12 @@ export class Decklist {
 		} else {
 			this.cards.push(new CardInDeck(card));			
 		}	
+	}
+	RemoveCardFromList(card: CardInDeck) {
+		if (card.deckCount > 0) {
+			if (card.deckCount > 1) card.deckCount--;
+			if (card.deckCount === 1) this.cards = this.cards.filter(c => c != card);
+		}
 	}
 	saveToLocalStorage() {
 		const decklist: string = JSON.stringify(this)
@@ -64,7 +70,7 @@ export class Deck {
 		if (this.cards.length < this.maxSize) this.cards.push(card);
 	}
 	RemoveCard(card: Card) {
-		if (this.cards.length > 0) this.cards.filter(c => c != card);
+		if (this.cards.length > 0) this.cards = this.cards.filter(c => c != card);
 	}
 }
 

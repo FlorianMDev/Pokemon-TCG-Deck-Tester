@@ -1,4 +1,5 @@
 import {Config, cardCount} from "../Config.js";
+import { Collection } from "./Collection.js";
 import {Deck, Decklist} from "./Deck.js";
 import {Player} from "./Player.js";
 
@@ -147,8 +148,8 @@ export class CardData {
 	images: Images;
 	avgPrice: number;
 
-	deckCount: number;
-	constructor(data: RawCardData) {
+	deckCount?: number;
+	constructor(data: RawCardData, decklist: Decklist/*  | Collection */) {
 		this.id = data.id
 		this.name = data.name;
 		this.supertype = data.supertype
@@ -167,7 +168,14 @@ export class CardData {
 		this.legality = data.legalities.standard;
 		this.images = data.images;
 		this.avgPrice = data.cardmarket.prices.averageSellPrice;
-		this.deckCount = 0;
+
+		if (decklist.cards.length > 0) {
+			const cardInDeck = decklist.cards.find( (card: CardInDeck) => card.id === this.id);//Check if card in decklist
+			if (!!cardInDeck) {
+				this.deckCount = cardInDeck.deckCount;
+			}
+		}
+		else this.deckCount = 0;
 	}
 }
 
@@ -179,7 +187,7 @@ export class CardInDeck{
 	name: string
 	supertype: string
 	subtypes: string[];
-	constructor (data: CardData) {
+	constructor (data: RawCardData) {
 		this._deckCount = 1;
 		this.id = data.id;
 		this.name = data.name

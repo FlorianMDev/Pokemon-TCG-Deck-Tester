@@ -9,7 +9,7 @@ export class CardTemplate {
 
         this.$wrapper = document.createElement('div');
         this.$wrapper.classList.add('card-template');
-		this.$wrapper.id = `template-${cardData.id}`
+		this.$wrapper.id = `card-${cardData.id}`
     }
 
     get cardData() {
@@ -18,7 +18,7 @@ export class CardTemplate {
 	createHTMLCard():HTMLDivElement {
         const cardDataTemplate = `
             
-			<div class= "name"><h3 class="fs-16">${this._cardData.name}</h3></div>
+			<div class= "card-name"><span class="fs-16">${this._cardData.name}</span><div class="deck-count"></div></div>
 				<div class="card-picture">			
             	<img
 					id="${this._cardData.id}"

@@ -1,5 +1,5 @@
 export class CardData {
-    constructor(data) {
+    constructor(data, decklist /*  | Collection */) {
         this.id = data.id;
         this.name = data.name;
         this.supertype = data.supertype;
@@ -18,7 +18,14 @@ export class CardData {
         this.legality = data.legalities.standard;
         this.images = data.images;
         this.avgPrice = data.cardmarket.prices.averageSellPrice;
-        this.deckCount = 0;
+        if (decklist.cards.length > 0) {
+            const cardInDeck = decklist.cards.find((card) => card.id === this.id); //Check if card in decklist
+            if (!!cardInDeck) {
+                this.deckCount = cardInDeck.deckCount;
+            }
+        }
+        else
+            this.deckCount = 0;
     }
 }
 export class CardInDeck {

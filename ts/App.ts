@@ -11,6 +11,7 @@ import { cardWithModal } from "./decorators/CardWithModal.js";
 import { CardModal } from "./templates/CardModal.js";
 import { StateManager } from "./templates/StateManager.js";
 import { Modal } from "./templates/Modal.js";
+import { CardWithDecklistBtn } from "./decorators/CardWithDecklistBtn.js";
 
 export class App {
 	api: Api;
@@ -27,8 +28,7 @@ export class App {
 	cardProperties?: CardProperties;
 	$cardTemplatesWrapper: HTMLDivElement;
 
-	private _activeDeck: Decklist;
-	private _deckMenu: boolean;	
+	private _activeDeck?: Decklist;
 
 	constructor() {		
 		this.api = new Api(`${Config.ApiURI}`);
@@ -38,15 +38,10 @@ export class App {
 		this.state = "card-list";
 		this.page = 1;
 		this.pageManagers = [];
-		this.$cardTemplatesWrapper = document.querySelector('section.cards-data')!;
-
-		const activeDeck: string | null = localStorage.getItem("active-decklist");
-		if (!!activeDeck) this._activeDeck = JSON.parse(activeDeck)
-		else this._activeDeck =  new Decklist;
-		this._deckMenu = false;
+		this.$cardTemplatesWrapper = document.querySelector('section.cards-data')!;		
 	}
 	get activeDeck(): Decklist {
-		return this._activeDeck;
+		return this._activeDeck!;
 	}
 	set activeDeck(deck: Decklist) {
 		this._activeDeck = deck;
@@ -54,7 +49,6 @@ export class App {
 	/* set deckMenu(state: boolean) {
 		this._deckMenu = state;
 	} */
-	
 
 	loadStateManager() {
 		this.stateManager = new StateManager(this.state);
@@ -63,6 +57,9 @@ export class App {
 			const that:App = this;
 			document.querySelector('button#new-deck-btn')!
 				.addEventListener('click', async function() {
+					that.state = 'deck-builder'
+					that.activeDeck = new Decklist();
+					console.log('new Deck');					
 					await that.updatePage();
 				})
 		})	
@@ -132,14 +129,13 @@ export class App {
 	async loadCardData(filters?: string){
 		const apiData = await this.fetchCards(this.page, this.filters?? "");
 		
-		if (this._deckMenu === true) {
+		/* if (this.state === "deck-builder") {
 			this.cardList = apiData.data.map((c: RawCardData) => {
-				return new CardData(c);
+				return new CardData(c, this.activeDeck!);
 			})
 		}
-		else {
-			this.cardList = apiData.data;
-		}
+		else */ this.cardList = apiData.data;
+
 		console.log(this.cardList);		
 		
 		this.apiTotalPages = Math.ceil( (apiData.totalCount+0.001) / Config.displayedPerPage);
@@ -148,19 +144,9 @@ export class App {
 		this.pageManagers[0].$pageCounter.innerHTML =
 		`Page: ${this.page}/${this.apiTotalPages} (displaying ${apiData.count} cards out of ${apiData.totalCount})`;
 		this.pageManagers[1].$pageCounter.innerHTML =
-		`Page: ${this.page}/${this.apiTotalPages} (displaying ${apiData.count} cards out of ${apiData.totalCount})`;		
-
-		/* let localStorageCardList: string | null = window.localStorage.getItem("card-list");
-		if (localStorageCardList === null) {
-			await this.fetchCards(this.page, filters?? "");
-		} else {
-			this.cardList = JSON.parse(localStorageCardList);
-		}	 */		
-	}	
-	/* saveCardData(){
-		let savedCardList: string = JSON.stringify(this.cardList);
-		localStorage.setItem("card-list", savedCardList);
-	} */
+		`Page: ${this.page}/${this.apiTotalPages} (displaying ${apiData.count} cards out of ${apiData.totalCount})`;
+	}
+	
 	async loadCardListPage() {
 		await this.updatePage();
 		const properties: string | null = localStorage.getItem("card-properties");
@@ -177,18 +163,19 @@ export class App {
 	}
 	displayCards() {
 		this.$cardTemplatesWrapper.innerHTML = "";
-
 		const $modalWrapper: HTMLDivElement = document.querySelector('.card-modal')!;
-		Modal.closeModal($modalWrapper);
-
+		if ( $modalWrapper.classList.contains('modal-on') ) Modal.closeModal($modalWrapper);
 		this.cardList.forEach((card: RawCardData | CardData) =>{
 			let cardTemplate: CardTemplate = new CardTemplate(card);
-			const $cardTemplate: HTMLDivElement = cardTemplate.createHTMLCard();			
+			const $cardTemplate: HTMLDivElement = cardTemplate.createHTMLCard();
+			if (this.state === 'deck-builder')
+				cardTemplate = CardWithDecklistBtn(cardTemplate, card as RawCardData, this.activeDeck);
+			
 			this.$cardTemplatesWrapper.appendChild($cardTemplate);
 			cardTemplate = cardWithModal(cardTemplate);
 		})
 	}
-	
+
 	async updatePage() {
 		await this.loadCardData(this.filters?? "");
 		this.displayCards();
@@ -201,8 +188,8 @@ export class App {
 		//Change here when deck and difficulty selections are available
 		const CPUDeck: Decklist = new Decklist;
 		let game = null;
-		if (mode === "semi-ruled") game = new SemiRuledGame(this._activeDeck, CPUDeck, this.username);
-		else game = new FreeGame(this._activeDeck, CPUDeck, this.username);
+		if (mode === "semi-ruled") game = new SemiRuledGame(this.activeDeck, CPUDeck, this.username);
+		else game = new FreeGame(this.activeDeck, CPUDeck, this.username);
 
 		game.play();
 	}
