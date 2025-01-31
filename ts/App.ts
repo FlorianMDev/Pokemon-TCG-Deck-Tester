@@ -12,6 +12,8 @@ import { CardModal } from "./templates/CardModal.js";
 import { StateManager } from "./templates/StateManager.js";
 import { Modal } from "./templates/Modal.js";
 import { CardWithDecklistBtn } from "./decorators/CardWithDecklistBtn.js";
+import { DecklistManager } from "./templates/DecklistManager.js";
+import { DeckBuilderManager } from "./templates/DeckBuilderManager.js";
 
 export class App {
 	api: Api;
@@ -25,6 +27,7 @@ export class App {
 	pageManagers: PageManager[];	
 	filters?: string;	
 	filterForm?: FilterForm;
+	deckBuilder?: DeckBuilderManager;
 	cardProperties?: CardProperties;
 	$cardTemplatesWrapper: HTMLDivElement;
 
@@ -52,26 +55,29 @@ export class App {
 
 	loadStateManager() {
 		this.stateManager = new StateManager(this.state);
-		this.stateManager.initializeBtns();
-		this.stateManager.$deckMenuBtn.addEventListener('click', () => {
-			const that:App = this;
-			document.querySelector('button#new-deck-btn')!
-				.addEventListener('click', async function() {
-					that.state = 'deck-builder'
-					that.activeDeck = new Decklist();
-					console.log('new Deck');					
-					await that.updatePage();
-				})
+		this.stateManager.createHTMLContent();
+		this.stateManager.$deckMenuBtn!.addEventListener('click', () => {
+			const modal = new DecklistManager();
+			modal.render();
+			document.querySelector('button#new-deck-btn')!.addEventListener('click', async () => await this.newDeck())
 		})	
 		this.addStateManagerListeners();
 	}
 	addStateManagerListeners() {
 		this.stateManager!.$displayBtns.forEach((btn:HTMLButtonElement) => {
-			addEventListener('click', (e: Event) => {
+			addEventListener('click', async () => {
 				this.state = this.stateManager!.updateStateTo(btn.id);
+				await this.updatePage();
 			})
 		});
-		
+	}
+	async newDeck() {		
+		this.state = 'deck-builder'
+		this.activeDeck = new Decklist();
+		this.deckBuilder = new DeckBuilderManager(this.activeDeck);
+		this.deckBuilder.render();
+		console.log('new Deck');					
+		await this.updatePage();
 	}
 
 	loadPageManagers() {
@@ -106,16 +112,13 @@ export class App {
 	loadFilters() {
 		this.filterForm = new FilterForm();
 		document.querySelectorAll('button.submit-filters')!.forEach( (btn: Element) => {
-			btn.addEventListener('click', (event: Event) => {
-				console.log('click submit filters');
-				
+			btn.addEventListener('click', (event: Event) => {				
 				this.searchWithFilters();
 			})
 		})
     }
 	searchWithFilters() {
 		this.filters = this.filterForm!.getFilters();
-		console.log(this.filters);
 		this.page = 1;
 		this.updatePage();	
 	}
@@ -136,7 +139,7 @@ export class App {
 		}
 		else */ this.cardList = apiData.data;
 
-		console.log(this.cardList);		
+		console.log(this.cardList);
 		
 		this.apiTotalPages = Math.ceil( (apiData.totalCount+0.001) / Config.displayedPerPage);
 		//+0.001 ensures result is at the very least 1 (page 0 makes no sense even with zero result)
@@ -168,8 +171,10 @@ export class App {
 		this.cardList.forEach((card: RawCardData | CardData) =>{
 			let cardTemplate: CardTemplate = new CardTemplate(card);
 			const $cardTemplate: HTMLDivElement = cardTemplate.createHTMLCard();
-			if (this.state === 'deck-builder')
-				cardTemplate = CardWithDecklistBtn(cardTemplate, card as RawCardData, this.activeDeck);
+			if (this.state === 'deck-builder') {
+				cardTemplate = CardWithDecklistBtn(cardTemplate, this.activeDeck);
+			}
+				
 			
 			this.$cardTemplatesWrapper.appendChild($cardTemplate);
 			cardTemplate = cardWithModal(cardTemplate);

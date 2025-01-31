@@ -19,6 +19,8 @@ import { cardWithModal } from "./decorators/CardWithModal.js";
 import { StateManager } from "./templates/StateManager.js";
 import { Modal } from "./templates/Modal.js";
 import { CardWithDecklistBtn } from "./decorators/CardWithDecklistBtn.js";
+import { DecklistManager } from "./templates/DecklistManager.js";
+import { DeckBuilderManager } from "./templates/DeckBuilderManager.js";
 export class App {
     constructor() {
         this.api = new Api(`${Config.ApiURI}`);
@@ -40,26 +42,30 @@ export class App {
     } */
     loadStateManager() {
         this.stateManager = new StateManager(this.state);
-        this.stateManager.initializeBtns();
+        this.stateManager.createHTMLContent();
         this.stateManager.$deckMenuBtn.addEventListener('click', () => {
-            const that = this;
-            document.querySelector('button#new-deck-btn')
-                .addEventListener('click', function () {
-                return __awaiter(this, void 0, void 0, function* () {
-                    that.state = 'deck-builder';
-                    that.activeDeck = new Decklist();
-                    console.log('new Deck');
-                    yield that.updatePage();
-                });
-            });
+            const modal = new DecklistManager();
+            modal.render();
+            document.querySelector('button#new-deck-btn').addEventListener('click', () => __awaiter(this, void 0, void 0, function* () { return yield this.newDeck(); }));
         });
         this.addStateManagerListeners();
     }
     addStateManagerListeners() {
         this.stateManager.$displayBtns.forEach((btn) => {
-            addEventListener('click', (e) => {
+            addEventListener('click', () => __awaiter(this, void 0, void 0, function* () {
                 this.state = this.stateManager.updateStateTo(btn.id);
-            });
+                yield this.updatePage();
+            }));
+        });
+    }
+    newDeck() {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.state = 'deck-builder';
+            this.activeDeck = new Decklist();
+            this.deckBuilder = new DeckBuilderManager(this.activeDeck);
+            this.deckBuilder.render();
+            console.log('new Deck');
+            yield this.updatePage();
         });
     }
     loadPageManagers() {
@@ -103,14 +109,12 @@ export class App {
         this.filterForm = new FilterForm();
         document.querySelectorAll('button.submit-filters').forEach((btn) => {
             btn.addEventListener('click', (event) => {
-                console.log('click submit filters');
                 this.searchWithFilters();
             });
         });
     }
     searchWithFilters() {
         this.filters = this.filterForm.getFilters();
-        console.log(this.filters);
         this.page = 1;
         this.updatePage();
     }
@@ -166,8 +170,9 @@ export class App {
         this.cardList.forEach((card) => {
             let cardTemplate = new CardTemplate(card);
             const $cardTemplate = cardTemplate.createHTMLCard();
-            if (this.state === 'deck-builder')
-                cardTemplate = CardWithDecklistBtn(cardTemplate, card, this.activeDeck);
+            if (this.state === 'deck-builder') {
+                cardTemplate = CardWithDecklistBtn(cardTemplate, this.activeDeck);
+            }
             this.$cardTemplatesWrapper.appendChild($cardTemplate);
             cardTemplate = cardWithModal(cardTemplate);
         });

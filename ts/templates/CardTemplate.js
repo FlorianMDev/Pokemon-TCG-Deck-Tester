@@ -11,7 +11,7 @@ export class CardTemplate {
     createHTMLCard() {
         const cardDataTemplate = `
             
-			<div class= "card-name"><span class="fs-16">${this._cardData.name}</span><div class="deck-count"></div></div>
+			<div class= "card-name"><span class="name">${this._cardData.name}</span><div class="deck-count"></div></div>
 				<div class="card-picture">			
             	<img
 					id="${this._cardData.id}"

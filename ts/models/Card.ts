@@ -3,6 +3,106 @@ import { Collection } from "./Collection.js";
 import {Deck, Decklist} from "./Deck.js";
 import {Player} from "./Player.js";
 
+
+
+
+export interface RawCardData {
+	id: string;
+	name: string
+	supertype: string
+	subtypes: string[];
+	level?: string;
+	hp: number;
+	types: string[];
+	evolvesFrom?: string
+	evolvesTo: string[];
+	rules?: string[];
+	ancientTrait?: AncientTrait;
+	abilities?: Ability[];
+	attacks: Attack[];
+	weaknesses: Weakness[];
+	resistances: Resistance[];
+	retreatCost: string[];
+	convertedRetreatCost: number,
+	set : Set;
+	number: string;
+	artist: string;
+	rarity: string;
+	flavorText: string;
+	nationalPokedexNumbers: number[];
+	legalities: Legalities;
+	images: Images;
+	tcgplayer: TCGPlayer;
+	cardmarket?: CardMarket;
+}
+
+export class CardData {
+	id: string;
+	name: string;
+	supertype: string;
+	subtypes: string[];
+	hp: number;
+	types: string[];
+	ancientTrait?: AncientTrait;
+	abilities?: Ability[];
+	attacks: Attack[];
+	weaknesses: Weakness[];
+	resistances: Resistance[];
+	convertedRetreatCost: number;
+	set : string;
+	rarity: string;
+	legality: string;
+	images: Images;
+	avgPrice?: number;
+
+	deckCount?: number;
+	constructor(data: RawCardData, decklist: Decklist/*  | Collection */) {
+		this.id = data.id
+		this.name = data.name;
+		this.supertype = data.supertype
+		this.subtypes = Array.from(data.subtypes?? []);
+		this.hp = data.hp;
+		this.types = Array.from(data.types?? []);
+		this.ancientTrait = data.ancientTrait;
+		this.abilities = Array.from(data.abilities?? []);
+		this.attacks = Array.from(data.attacks?? []);
+		this.weaknesses = Array.from(data.weaknesses?? []);
+		this.resistances = Array.from(data.resistances?? []);
+		this.convertedRetreatCost = data.convertedRetreatCost;
+		this.set = `${data.set.id} - ${data.set.name}`;
+		this.rarity = data.rarity;
+		this.legality = data.legalities.standard;
+		this.images = data.images;
+		this.avgPrice = data.cardmarket? data.cardmarket.prices.averageSellPrice: undefined;
+
+		if (decklist.cards.length > 0) {
+			const cardInDeck = decklist.cards.find( (card: CardInDeck) => card.id === this.id);//Check if card in decklist
+			if (!!cardInDeck) {
+				this.deckCount = cardInDeck.deckCount;
+			}
+		}
+		else this.deckCount = 0;
+	}
+	static maxDeckCount(card:RawCardData | CardData | CardInDeck) {
+		if (card.supertype === "Energy" && card.subtypes.includes("Basic")) {
+			return 60;
+		} else if (card.subtypes.includes("ACE SPEC") || card.subtypes.includes("Radiant")) {
+			return 1;
+		} else
+			return Config.maxCardDeckCount;
+	}
+}
+
+
+
+export class CardInDeck extends CardData{
+	deckCount: cardCount;
+	constructor (data: RawCardData, decklist: Decklist) {
+		super(data, decklist);
+		this.deckCount = 1;
+	}
+}
+
 //Custom types for card properties:
 interface AncientTrait {
 	name: string;
@@ -97,111 +197,6 @@ interface CardMarketPrices {
 	reverseHoloAvg30?: number;
 }
 
-
-export interface RawCardData {
-	id: string;
-	name: string
-	supertype: string
-	subtypes: string[];
-	level?: string;
-	hp: number;
-	types: string[];
-	evolvesFrom?: string
-	evolvesTo: string[];
-	rules?: string[];
-	ancientTrait?: AncientTrait[];
-	abilities?: Ability[];
-	attacks: Attack[];
-	weaknesses: Weakness[];
-	resistances: Resistance[];
-	retreatCost: string[];
-	convertedRetreatCost: number,
-	set : Set;
-	number: string;
-	artist: string;
-	rarity: string;
-	flavorText: string;
-	nationalPokedexNumbers: number[];
-	legalities: Legalities;
-	images: Images;
-	tcgplayer: TCGPlayer;
-	cardmarket: CardMarket;
-}
-
-export class CardData {
-	id: string;
-	name: string;
-	supertype: string;
-	subtypes: string[];
-	hp: number;
-	types: string[];
-	rules?: string[];
-	ancientTrait?: AncientTrait[];
-	abilities?: Ability[];
-	attacks: Attack[];
-	weaknesses: Weakness[];
-	resistances: Resistance[];
-	convertedRetreatCost: number;
-	set : string;
-	rarity: string;
-	legality: string;
-	images: Images;
-	avgPrice: number;
-
-	deckCount?: number;
-	constructor(data: RawCardData, decklist: Decklist/*  | Collection */) {
-		this.id = data.id
-		this.name = data.name;
-		this.supertype = data.supertype
-		this.subtypes = data.subtypes;
-		this.hp = data.hp;
-		this.types = data.types;
-		this.rules = data.rules;
-		this.ancientTrait = data.ancientTrait;
-		this.abilities = data.abilities;
-		this.attacks = data.attacks;
-		this.weaknesses = data.weaknesses;
-		this.resistances = data.resistances;
-		this.convertedRetreatCost = data.convertedRetreatCost;
-		this.set = `${data.set.id} - ${data.set.name}`;
-		this.rarity = data.rarity;
-		this.legality = data.legalities.standard;
-		this.images = data.images;
-		this.avgPrice = data.cardmarket.prices.averageSellPrice;
-
-		if (decklist.cards.length > 0) {
-			const cardInDeck = decklist.cards.find( (card: CardInDeck) => card.id === this.id);//Check if card in decklist
-			if (!!cardInDeck) {
-				this.deckCount = cardInDeck.deckCount;
-			}
-		}
-		else this.deckCount = 0;
-	}
-}
-
-
-
-export class CardInDeck{
-	private _deckCount: cardCount;
-	id: string;
-	name: string
-	supertype: string
-	subtypes: string[];
-	constructor (data: RawCardData) {
-		this._deckCount = 1;
-		this.id = data.id;
-		this.name = data.name
-		this.supertype = data.supertype;
-		this.subtypes = Array.from(data.subtypes);
-	}
-	get deckCount() {
-		return this._deckCount;
-	}
-	set deckCount(value:cardCount) {
-		this.deckCount = value;
-	}
-}
-
 export class Card {
 	id: string;
 	private _model: CardInDeck;
@@ -217,6 +212,12 @@ export class Card {
 	/* restoreDefault() {
 		Object.assign(this, new Card(this._model, this._instance));
 	} */
+	get model() {
+		return this._model;
+	}
+	get instance() {
+		return this._instance;
+	}
 	
 	attackTarget(target: Card) {
 	}
@@ -224,5 +225,8 @@ export class Card {
 		this.damage += damage;
 	}
 }
+
+
+
 
 
