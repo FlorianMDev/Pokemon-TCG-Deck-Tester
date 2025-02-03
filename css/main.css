@@ -209,12 +209,13 @@ section.cards-data {
 	flex-grow: 3;
 	justify-content: space-evenly;	
 }
-.cards-data .card-template{	
+div.center-div .cards-data .card-template{	
     /* margin-left: 1.1%;
     margin-right: 1.1%; */
 	max-width: 22%;
 	min-width: 14.5vw;
 }
+
 
 .cards-data .card-picture img { 
 	width: 100%;  
@@ -224,26 +225,27 @@ section.cards-data {
 }
 
 .cards-data .card-name {
-	font-size: 1.1rem;
+	font-size: calc(0.8vw + 0.5rem);
 	font-weight: 600;
 	display: flex;
 	justify-content: space-between;
-	margin-bottom: 0.5rem;
-	margin-left: 0.25rem;
+	margin: 0.5rem 0 0.25rem 0.25rem;
 	text-align:start;
 	max-width:100%;
 }
+
 .cards-data .card-name span.name{
 	overflow:hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 .cards-data .card-name div.deck-count{
-	font-size: 1rem;
+	font-size: calc(0.75vw + 0.4rem);
 	text-align: end;
 	min-width: 35%;
 	max-width: 35%;
 }
+
 .cards-data .card-name div.deck-count button{
 	font-size: 1rem;
 	text-align: center;
@@ -251,9 +253,28 @@ section.cards-data {
 	padding: 0 3%;	
 }
 
+div#deck-builder .cards-data .card-template{
+	max-width: 45%;
+	min-width: 8vw;
+}
+div#deck-builder .cards-data .card-name {
+	font-size: calc(0.6vw + 0.3rem);
+}
+div#deck-builder .cards-data .card-name div.deck-count{
+	font-size: calc(0.6vw + 0.3rem);
+}
+
 /* DECK-BUILDER */
 div#deck-builder.visible {
 	min-width: 18vw;
+	text-align: center;
+}
+div#deck-builder.visible p#decklist-name{
+	font-size: 1.15rem;
+	font-weight: 500;
+}
+div#deck-builder.visible i.fa-pen-to-square{
+	margin: 0 2%;
 }
 
 

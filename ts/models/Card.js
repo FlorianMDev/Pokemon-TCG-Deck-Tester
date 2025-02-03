@@ -14,29 +14,41 @@ export class CardData {
         this.weaknesses = Array.from((_e = data.weaknesses) !== null && _e !== void 0 ? _e : []);
         this.resistances = Array.from((_f = data.resistances) !== null && _f !== void 0 ? _f : []);
         this.convertedRetreatCost = data.convertedRetreatCost;
-        this.set = `${data.set.id} - ${data.set.name}`;
-        this.rarity = data.rarity;
-        this.legality = data.legalities.standard;
-        this.images = data.images;
-        this.avgPrice = data.cardmarket ? data.cardmarket.prices.averageSellPrice : undefined;
-        if (decklist.cards.length > 0) {
-            const cardInDeck = decklist.cards.find((card) => card.id === this.id); //Check if card in decklist
-            if (!!cardInDeck) {
-                this.deckCount = cardInDeck.deckCount;
-            }
+        if (data instanceof CardData) {
+            this.set = data.set;
+            this.legality = data.legality;
+            this.avgPrice = data.avgPrice;
         }
-        else
-            this.deckCount = 0;
+        else {
+            this.set = `${data.set.id} - ${data.set.name}`;
+            this.legality = data.legalities.standard;
+            this.avgPrice = data.cardmarket ? data.cardmarket.prices.averageSellPrice : undefined;
+        }
+        this.rarity = data.rarity;
+        this.images = data.images;
+        if (!!decklist) {
+            if (decklist.cards.length > 0) {
+                const cardInDeck = decklist.cards.find((card) => card.id === this.id); //Check if card in decklist
+                if (!!cardInDeck) {
+                    this.deckCount = cardInDeck.deckCount;
+                }
+            }
+            else
+                this.deckCount = 0;
+        }
     }
-    static maxDeckCount(card) {
+    static maxDeckCount(card /* , decklist:Decklist */) {
         if (card.supertype === "Energy" && card.subtypes.includes("Basic")) {
             return 60;
         }
         else if (card.subtypes.includes("ACE SPEC") || card.subtypes.includes("Radiant")) {
             return 1;
         }
-        else
+        else {
+            /* if (!!decklist.cards.find(c => c.id === card.id )) {}
+            else */
             return Config.maxCardDeckCount;
+        }
     }
 }
 export class CardInDeck extends CardData {

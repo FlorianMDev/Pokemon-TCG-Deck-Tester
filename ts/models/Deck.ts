@@ -21,20 +21,37 @@ export class Decklist {
 		return this._deckCount;
 	}
 	set deckCount(value) {
-		this._deckCount = value;		
+		this._deckCount = value;
 	} */
-	addCardToList(card: RawCardData) {
-		const existingCard: CardInDeck | void = this.cards.find(c => c.id === card.id);		
-		if (!!existingCard) {
-			existingCard.deckCount ++;
+	checkTotalNameCount(card: RawCardData | CardData): number {
+		let similarNameCount: number = 0;
+		let similarNames: CardInDeck[] = this.cards.filter(c => c.name === card.name);
+		similarNames.forEach(c => {
+			similarNameCount += c.deckCount;
+		})
+		return similarNameCount;
+	}
+	addCardToList(card: CardInDeck | RawCardData) {
+		const existingCard: CardInDeck | void = this.cards.find(c => c.id === card.id);
+		/* if (this.checkTotalNameCount(card) >= CardData.maxDeckCount(card)) return false; unnecessary rn-checked before*/		
+
+		if (!existingCard) {
+			if (card instanceof CardInDeck === false) {
+				this.cards.push(new CardInDeck(card, this));
+			} else
+				this.cards.push(card);
 		} else {
-			this.cards.push(new CardInDeck(card, this));
+			existingCard.deckCount ++;
 		}
-		console.log(this.cards);	
+		console.log('DECKLIST:');
+		this.cards.forEach(c => console.log(c));
+		return true;//In case I want to check the condition in this method and not before. Uncomment the rest if so
 	}
 	removeCardFromList(card: CardInDeck) {
-		if (card.deckCount > 1) card.deckCount--;
-		else if (card.deckCount === 1) this.cards = this.cards.filter(c => c != card);
+		if (card.deckCount > 0) {
+			if (card.deckCount === 1) this.cards = this.cards.filter(c => c !== card);
+			card.deckCount--;
+		}
 		console.log(this.cards);
 	}
 	saveToLocalStorage() {

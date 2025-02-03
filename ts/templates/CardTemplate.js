@@ -2,8 +2,7 @@ export class CardTemplate {
     constructor(cardData) {
         this._cardData = cardData;
         this.$wrapper = document.createElement('div');
-        this.$wrapper.classList.add('card-template');
-        this.$wrapper.id = `card-${cardData.id}`;
+        this.$wrapper.classList.add('card-template', cardData.id);
     }
     get cardData() {
         return this._cardData;
@@ -11,10 +10,10 @@ export class CardTemplate {
     createHTMLCard() {
         const cardDataTemplate = `
             
-			<div class= "card-name"><span class="name">${this._cardData.name}</span><div class="deck-count"></div></div>
+			<div class= "card-name"><span class="name">${this._cardData.name}</span></div>
 				<div class="card-picture">			
             	<img
-					id="${this._cardData.id}"
+					class="${this._cardData.id}"
 					alt="${this._cardData.name}"
 					src="${this._cardData.images.large}"
 				/>

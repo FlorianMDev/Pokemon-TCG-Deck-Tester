@@ -56,7 +56,7 @@ export class CardData {
 	avgPrice?: number;
 
 	deckCount?: number;
-	constructor(data: RawCardData, decklist: Decklist/*  | Collection */) {
+	constructor(data: RawCardData | CardData, decklist?: Decklist/*  | Collection */) {
 		this.id = data.id
 		this.name = data.name;
 		this.supertype = data.supertype
@@ -69,27 +69,39 @@ export class CardData {
 		this.weaknesses = Array.from(data.weaknesses?? []);
 		this.resistances = Array.from(data.resistances?? []);
 		this.convertedRetreatCost = data.convertedRetreatCost;
-		this.set = `${data.set.id} - ${data.set.name}`;
+		if (data instanceof CardData) {
+			this.set = data.set;
+			this.legality = data.legality;
+			this.avgPrice = data.avgPrice;
+		} else {
+			this.set = `${data.set.id} - ${data.set.name}`;
+			this.legality = data.legalities.standard;
+			this.avgPrice = data.cardmarket? data.cardmarket.prices.averageSellPrice: undefined;
+		}		
 		this.rarity = data.rarity;
-		this.legality = data.legalities.standard;
 		this.images = data.images;
-		this.avgPrice = data.cardmarket? data.cardmarket.prices.averageSellPrice: undefined;
 
-		if (decklist.cards.length > 0) {
-			const cardInDeck = decklist.cards.find( (card: CardInDeck) => card.id === this.id);//Check if card in decklist
-			if (!!cardInDeck) {
-				this.deckCount = cardInDeck.deckCount;
+		if (!!decklist) {
+			if (decklist.cards.length > 0) {
+				const cardInDeck = decklist.cards.find( (card: CardInDeck) => card.id === this.id);//Check if card in decklist
+				if (!!cardInDeck) {
+					this.deckCount = cardInDeck.deckCount;
+				}
 			}
-		}
-		else this.deckCount = 0;
+			else this.deckCount = 0;
+		} 
+		
 	}
-	static maxDeckCount(card:RawCardData | CardData | CardInDeck) {
+	static maxDeckCount(card:RawCardData | CardData | CardInDeck/* , decklist:Decklist */) {
 		if (card.supertype === "Energy" && card.subtypes.includes("Basic")) {
 			return 60;
 		} else if (card.subtypes.includes("ACE SPEC") || card.subtypes.includes("Radiant")) {
 			return 1;
-		} else
+		} else {
+			/* if (!!decklist.cards.find(c => c.id === card.id )) {}
+			else */
 			return Config.maxCardDeckCount;
+		}
 	}
 }
 
@@ -97,7 +109,7 @@ export class CardData {
 
 export class CardInDeck extends CardData{
 	deckCount: cardCount;
-	constructor (data: RawCardData, decklist: Decklist) {
+	constructor (data: RawCardData | CardData, decklist: Decklist) {
 		super(data, decklist);
 		this.deckCount = 1;
 	}
