@@ -145,6 +145,7 @@ export class App {
                 `Page: ${this.page}/${this.apiTotalPages} (displaying ${apiData.count} cards out of ${apiData.totalCount})`;
             this.pageManagers[1].$pageCounter.innerHTML =
                 `Page: ${this.page}/${this.apiTotalPages} (displaying ${apiData.count} cards out of ${apiData.totalCount})`;
+            console.log(this.cardList);
         });
     }
     loadCardListPage() {
@@ -173,8 +174,8 @@ export class App {
     }
     addDeckCountListeners(card, cardTemplate) {
         const $deckCounter = cardTemplate.$wrapper.querySelector("span.deck-counter");
-        const $cardListCardData = document.querySelector('.center-div section.cards-data');
-        const $deckBuilderCardData = document.querySelector('#deck-builder section.cards-data');
+        const $cardListCardsData = document.querySelector('.center-div section.cards-data');
+        const $deckBuilderCardsData = document.querySelector('#deck-builder section.cards-data');
         const AddToDecklistBtn = cardTemplate.$wrapper.querySelector('button.plus-1');
         AddToDecklistBtn.addEventListener(('click'), () => {
             if (this.activeDeck.checkTotalNameCount(card) >= CardData.maxDeckCount(card))
@@ -184,42 +185,54 @@ export class App {
                 let newCardInDeck = new CardInDeck(card, this.activeDeck);
                 this.activeDeck.addCardToList(newCardInDeck);
                 $deckCounter.textContent = `1`;
-                let cardInDeckTemplate = this.createCardTemplate(newCardInDeck, $deckBuilderCardData);
+                const $supertypeDiv = $deckBuilderCardsData.querySelector(`.sub-section.${card.supertype}`);
+                let cardInDeckTemplate = this.createCardTemplate(newCardInDeck, $supertypeDiv);
                 cardInDeckTemplate = CardWithDecklistBtn(cardInDeckTemplate, this.activeDeck);
                 this.addDeckCountListeners(newCardInDeck, cardInDeckTemplate);
             }
-            else /* if (existingCard.deckCount < CardData.maxDeckCount(card)) */ {
+            else {
                 this.activeDeck.addCardToList(existingCard);
-                let $deckBuilderDeckCount = $deckBuilderCardData.querySelector(`.${card.id} span.deck-counter`);
                 $deckCounter.textContent = `${existingCard.deckCount}`;
-                $deckBuilderDeckCount.textContent = `${existingCard.deckCount}`;
+                if (card instanceof CardInDeck) {
+                    const $cardListData = $cardListCardsData.querySelector(`.card-template.${card.id}`);
+                    if (!!$cardListData)
+                        $cardListData.querySelector('.deck-counter').textContent = `${card.deckCount}`;
+                }
+                else {
+                    const $deckBuilderDeckCount = $deckBuilderCardsData.querySelector(`.${card.id}`);
+                    $deckBuilderDeckCount.querySelector('.deck-counter').textContent = `${existingCard.deckCount}`;
+                }
             }
+            this.deckBuilder.addCardToCount(card);
         });
         const RemoveFromDecklistBtn = cardTemplate.$wrapper.querySelector('button.minus-1');
         RemoveFromDecklistBtn.addEventListener('click', () => {
             let cardInDeck = undefined;
             if (card instanceof CardInDeck) {
                 cardInDeck = card;
+                const $cardListData = $cardListCardsData.querySelector(`.card-template.${card.id}`);
                 if (cardInDeck.deckCount === 1) {
-                    this.activeDeck.removeCardFromList(cardInDeck);
                     cardTemplate.$wrapper.remove();
-                    return;
                 }
                 this.activeDeck.removeCardFromList(cardInDeck);
+                if (!!$cardListData)
+                    $cardListData.querySelector('.deck-counter').textContent = `${card.deckCount}`;
             }
             else {
                 cardInDeck = this.activeDeck.cards.find(c => c.id === card.id);
                 if (!cardInDeck)
                     return;
-                const $deckBuilderWrapper = $deckBuilderCardData.querySelector(`.card-template.${card.id}`);
+                const $deckBuilderData = $deckBuilderCardsData.querySelector(`.card-template.${card.id}`);
                 if (cardInDeck.deckCount === 1) {
-                    $deckBuilderWrapper.remove();
+                    $deckBuilderData.remove();
                 }
                 this.activeDeck.removeCardFromList(cardInDeck);
-                $deckBuilderWrapper.querySelector('span.deck-counter').textContent = `${cardInDeck.deckCount}`;
+                $deckBuilderData.querySelector('span.deck-counter').textContent = `${cardInDeck.deckCount}`;
             }
-            //Rest runs only if cardInDeck.deckCount > 1:
             console.log(cardInDeck);
+            this.deckBuilder.removeCardFromCount(card);
+            if (!cardTemplate.$wrapper)
+                return;
             $deckCounter.textContent = `${cardInDeck.deckCount}`;
         });
     }

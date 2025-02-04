@@ -16,7 +16,6 @@ export function CardWithDecklistBtn(cardTemplate, decklist) {
     RemoveFromDecklistBtn.classList.add("minus-1");
     RemoveFromDecklistBtn.innerText = "-";
     $deckCountDiv.appendChild(RemoveFromDecklistBtn);
-    console.log(RemoveFromDecklistBtn);
     const $deckCounter = document.createElement('span');
     $deckCounter.classList.add("deck-counter");
     $deckCounter.textContent = `${deckCount}`;
@@ -32,7 +31,6 @@ export function CardWithDecklistBtn(cardTemplate, decklist) {
     AddToDecklistBtn.classList.add("plus-1");
     AddToDecklistBtn.innerText = "+";
     $deckCountDiv.appendChild(AddToDecklistBtn);
-    console.log(AddToDecklistBtn);
     /* AddToDecklistBtn.addEventListener('click', () => {
         const $deckCounter: HTMLElement = cardTemplate.$wrapper.querySelector("span.deck-counter")!;
         if (parseInt($deckCounter.textContent!) < CardData.maxDeckCount(cardTemplate.cardData)) {

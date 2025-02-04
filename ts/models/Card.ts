@@ -89,19 +89,15 @@ export class CardData {
 				}
 			}
 			else this.deckCount = 0;
-		} 
-		
+		}
+	
 	}
 	static maxDeckCount(card:RawCardData | CardData | CardInDeck/* , decklist:Decklist */) {
-		if (card.supertype === "Energy" && card.subtypes.includes("Basic")) {
+		if (card.supertype === "Energy" && (!card.subtypes || (!!card.subtypes && card.subtypes.includes("Basic"))) ){
 			return 60;
-		} else if (card.subtypes.includes("ACE SPEC") || card.subtypes.includes("Radiant")) {
+		} else if (!!card.subtypes && (card.subtypes.includes("ACE SPEC") || card.subtypes.includes("Radiant")) ){
 			return 1;
-		} else {
-			/* if (!!decklist.cards.find(c => c.id === card.id )) {}
-			else */
-			return Config.maxCardDeckCount;
-		}
+		} else return Config.maxCardDeckCount;
 	}
 }
 

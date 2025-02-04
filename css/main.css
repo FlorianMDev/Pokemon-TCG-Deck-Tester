@@ -265,13 +265,35 @@ div#deck-builder .cards-data .card-name div.deck-count{
 }
 
 /* DECK-BUILDER */
+div#deck-builder section.cards-data {
+    display: block;
+}
+div#deck-builder section.cards-data .sub-section {
+	margin: 0;
+	padding: 0;
+    display: flex;
+	flex-wrap: wrap;
+	justify-content: space-evenly;	
+}
+div#deck-builder section.cards-data h3{
+	border-top: 2px dashed black;
+	border-bottom: 2px dashed black;
+	padding: 2.5% 0;
+}
 div#deck-builder.visible {
+	max-width: 25vw;
 	min-width: 18vw;
 	text-align: center;
+	height: 100vh;
+	overflow: scroll;
 }
-div#deck-builder.visible p#decklist-name{
-	font-size: 1.15rem;
-	font-weight: 500;
+div#deck-builder.visible h2#decklist-name{
+	font-size: 1.25rem;
+	font-weight: 600;
+	justify-content: center;
+	display: flex;
+	flex-wrap: nowrap;
+	overflow:auto;
 }
 div#deck-builder.visible i.fa-pen-to-square{
 	margin: 0 2%;
