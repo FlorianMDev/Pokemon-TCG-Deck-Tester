@@ -2,41 +2,69 @@ import { Decklist } from "../models/Deck.js";
 import { Modal } from "./Modal.js";
 
 export class DecklistManager extends Modal {
-	decklistList?: Decklist[];
+	decklistArray: {name: string, cardCount: number}[];
 	constructor() {		
 		super('div#decklist-manager');//this.$modalWrapper
-		this.decklistList = [];
+		this.decklistArray = [];
 	}
 	initializeDecks(){
 		const decklistListJSON: string | null = localStorage.getItem('decklist-list');
-		let decklistIDs: string[] = [];
 		if (!!decklistListJSON) {
-			const decklistList = JSON.parse(decklistListJSON);
-			decklistIDs = decklistList.list;
-		}		
-
-		if (!!decklistIDs) {
-			decklistIDs.forEach( (deck: string) => {
-				this.decklistList!.push(JSON.parse (localStorage.getItem(`decklist-${deck}`)!) as Decklist);
+			this.decklistArray = JSON.parse(decklistListJSON);
+			this.decklistArray.forEach( (deck) => {
+				this.appendDeckList(deck);
 			})
 		}
 	}
+	appendDeckList(deck: {name: string, cardCount: number}) {
+		const $container: HTMLDivElement = document.createElement('div');
+		$container.classList.add('deck-container')
+		const $deck: HTMLDivElement = document.createElement('div');
+		$deck.id = `deck-${deck.name.replace(' ', '-')}`;
+		$deck.classList.add('decklist');
+		$deck.innerHTML = '<i class="fa-solid fa-box-archive"></i>';
+		$container.appendChild($deck);
+
+		const $name: HTMLSpanElement = document.createElement('p');
+		$name.classList.add("decklist-name");
+		$name.textContent = deck.name;
+		$deck.appendChild($name);
+		$deck.innerHTML += `<p class="deck-count">${deck.cardCount}/60 cards</p>`;
+
+		const $deleteBtn: HTMLButtonElement = document.createElement('button');
+		$deleteBtn.classList.add('delete-btn');
+		$deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
+		$container.appendChild($deleteBtn);
+		$deleteBtn.addEventListener('click', () => {
+			localStorage.removeItem(`decklist: ${deck.name}`);
+			const decklist: string = JSON.stringify(this);
+			
+			//Get the decklist list
+			let decklistList: string | null = localStorage.getItem('decklist-list');
+			let decklistArray: {name: string, cardCount: number}[] = [];
+			decklistArray = JSON.parse(decklistList!);
+			
+			decklistArray = decklistArray.filter(d => d.name !== deck.name);
+			localStorage.setItem('decklist-list', JSON.stringify(decklistArray));
+		})
+		this.$modalWrapper.querySelector('div.decklist-container')!.appendChild($container);
+
+		this.onCloseButton($deck);
+	}
 	createModalContent () {
 		this.$modalWrapper.classList.add('modal-on');
-		this.$modalWrapper.innerHTML = `
-		<div><button type="button" id="new-deck-btn">New deck</button></div>`;
-		const containerDiv:HTMLDivElement = document.createElement('div');
-		containerDiv.classList.add('decklist-container');
-		this.$modalWrapper.appendChild(containerDiv);
-		this.decklistList?.forEach((deckId:Decklist) => {
-			containerDiv.innerHTML += `<div class="decklist" id="${deckId}"></div>`
-		})
+		this.$modalWrapper.innerHTML = `<button type="button" id="new-deck-btn">New deck</button>`;
+
 		const closeBtn: HTMLButtonElement = document.createElement('button');
 		closeBtn.classList.add("close-btn");
     	closeBtn.textContent = "Close Deck Menu";
 		this.$modalWrapper.appendChild(closeBtn);
 		this.addListeners();
-		
+
+		const $containerDiv:HTMLDivElement = document.createElement('div');
+		$containerDiv.classList.add('decklist-container');
+		this.$modalWrapper.appendChild($containerDiv);
+		this.initializeDecks();
 	}
 	addListeners() {
 		this.onCloseButton(this.$modalWrapper.querySelector('.close-btn')!);

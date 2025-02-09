@@ -13,10 +13,10 @@ export class Modal {
 		}
 		this.$modalWrapper.classList.add('modal');
 	}
-	onCloseButton(btn:HTMLButtonElement) {
+	onCloseButton(btn:HTMLElement) {
         btn.addEventListener('click', () => Modal.closeModal(this.$modalWrapper));
     }
-	static closeModal(modal: HTMLElement) {
+	static closeModal(modal: Element) {
 		modal.classList.remove('modal-on');
 		modal.innerHTML = "";
 	}

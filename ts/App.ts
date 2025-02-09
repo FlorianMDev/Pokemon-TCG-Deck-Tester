@@ -2,7 +2,7 @@ import {CardData, CardInDeck, RawCardData} from "./models/Card.js";
 import {Api} from "./api/Api.js";
 import {Config} from "./Config.js";
 import {Game, FreeGame, SemiRuledGame} from "./Game.js";
-import {Deck, Decklist} from "./models/Deck.js";
+import {CopiedDecklist, Deck, Decklist} from "./models/Deck.js";
 import {CardTemplate} from "./templates/CardTemplate.js";
 import { PageManager } from "./templates/PageManager.js";
 import { FilterForm } from "./templates/FilterForm.js";
@@ -59,9 +59,24 @@ export class App {
 		this.stateManager.$deckMenuBtn!.addEventListener('click', () => {
 			const modal = new DecklistManager();
 			modal.render();
-			document.querySelector('button#new-deck-btn')!.addEventListener('click', async () => {
+			modal.$modalWrapper.querySelector('button#new-deck-btn')!.addEventListener('click', async () => {
 				await this.newDeck();
 			})
+			modal.$modalWrapper.querySelectorAll('.decklist').forEach($deck => {
+				$deck.addEventListener('click', async () => {
+					const name: string = $deck.querySelector('p.decklist-name')!.textContent!;
+					console.log(name);
+					
+					const deckJSON: string = localStorage.getItem(`decklist: ${name}`)!;
+					console.log(deckJSON);
+					
+					const storedDeck = JSON.parse(deckJSON) as Decklist;
+					let deck: Decklist = new CopiedDecklist(storedDeck);					
+					
+					console.log('loading deck');
+					await this.loadDeck(deck);					
+				})
+			});
 		})	
 		this.addStateManagerListeners();
 	}
@@ -74,11 +89,26 @@ export class App {
 		});
 	}
 	async newDeck() {		
-		this.state = 'deck-builder'
+		this.state = 'deck-builder';
 		this.activeDeck = new Decklist();
-		this.deckBuilder = new DeckBuilderManager(this.activeDeck);
+		await this.loadDeckBuilder(this.activeDeck);
+	}
+	async loadDeck(deck: Decklist) {
+		this.state = 'deck-builder';
+		this.activeDeck = deck;
+		console.log(deck);
+		await this.loadDeckBuilder(this.activeDeck);
+		deck.cards.forEach(card => {
+			const $supertypeDiv: HTMLElement = document.querySelector(`#deck-builder section.cards-data .sub-section.${card.supertype}`)!;
+			let cardInDeckTemplate: CardTemplate = this.createCardTemplate(card,$supertypeDiv);
+			cardInDeckTemplate = CardWithDecklistBtn(cardInDeckTemplate, this.activeDeck);
+			this.addDeckCountListeners(card, cardInDeckTemplate);
+		})
+	}
+	async loadDeckBuilder(deck: Decklist) {
+		this.deckBuilder = new DeckBuilderManager(deck);
 		this.deckBuilder.render();
-		console.log('new Deck');					
+		console.log('deck loaded');					
 		await this.updatePage();
 	}
 
@@ -88,6 +118,12 @@ export class App {
 	addPageManagerListeners() {
 		this.pageManagers.forEach((pm: PageManager) => {
 			let that:App = this;
+			pm.$firstPageBtn.addEventListener('click', async function() {				
+				if (that.page > 1) {
+					that.page = 1;
+					await that.updatePage();
+				}
+			})
 			pm.$previousPageBtn.addEventListener('click', async function() {				
 				if (that.page > 1) {
 					that.page--;
@@ -100,6 +136,13 @@ export class App {
 					await that.updatePage();
 				}
 			})
+			pm.$lastPageBtn.addEventListener('click', async function() {
+				if (that.page < that.apiTotalPages! ) {
+					that.page = that.apiTotalPages!;
+					await that.updatePage();
+				}
+			})
+
 			pm.$pageSelectorBtn.addEventListener('click', async function(event: Event) {
 				event.preventDefault();
 				const value: number = Number(pm.$pageSelectorInput.value);
@@ -133,22 +176,15 @@ export class App {
 	}	
 	async loadCardData(filters?: string){
 		const apiData = await this.fetchCards(this.page, this.filters?? "");
-		
-		/* if (this.state === "deck-builder") {
-			this.cardList = apiData.data.map((c: RawCardData) => {
-				return new CardData(c, this.activeDeck!);
-			})
-		}
-		else */ this.cardList = apiData.data;		
-		this.apiTotalPages = Math.ceil( (apiData.totalCount+0.001) / Config.displayedPerPage);
-		//+0.001 ensures result is at the very least 1 (page 0 makes no sense even with zero result)
+		this.cardList = apiData.data;
+
+		this.apiTotalPages = Math.ceil(apiData.totalCount / Config.displayedPerPage);
 
 		this.pageManagers[0].$pageCounter.innerHTML =
 		`Page: ${this.page}/${this.apiTotalPages} (displaying ${apiData.count} cards out of ${apiData.totalCount})`;
 		this.pageManagers[1].$pageCounter.innerHTML =
 		`Page: ${this.page}/${this.apiTotalPages} (displaying ${apiData.count} cards out of ${apiData.totalCount})`;
 		console.log(this.cardList);
-		
 	}
 	
 	async loadCardListPage() {
@@ -253,7 +289,8 @@ export class App {
 		await this.loadCardData(this.filters?? "");
 		this.displayCards();
 		this.pageManagers.forEach((pm: PageManager) => {			
-			pm.$pageSelectorInput.max = `${this.apiTotalPages!}`;	
+			pm.$pageSelectorInput.max = `${this.apiTotalPages!}`;
+			pm.$pageSelectorInput.value = `${this.page}`;
 		})
 	}
 

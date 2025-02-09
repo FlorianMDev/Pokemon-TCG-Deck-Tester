@@ -23,7 +23,7 @@ export class Api {
 			.catch(err => {
 				console.log('an error occurs', err);
 				return [];
-				});			
+				});
 	}
 	async getProperty(property: string) {
 		return fetch(
@@ -34,6 +34,6 @@ export class Api {
 				.catch(err => {
 					console.log('an error occurs', err);
 					return [];
-					});			
+					});
 	}
 }

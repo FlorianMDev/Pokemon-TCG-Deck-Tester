@@ -4,10 +4,6 @@ export class DeckBuilderManager {
         this.$wrapper = document.querySelector('div#deck-builder');
         this.$wrapper.classList.add('visible');
         this.decklist = decklist;
-        this.pokémonCount = 0;
-        this.trainerCount = 0;
-        this.energyCount = 0;
-        this.cardCount = 0;
     }
     createHTMLContent() {
         this.$wrapper.innerHTML = '';
@@ -16,7 +12,7 @@ export class DeckBuilderManager {
         this.$wrapper.appendChild($deckStateDiv);
         const $name = document.createElement('h2');
         $name.id = "decklist-name";
-        $name.innerHTML = "Unnamed";
+        $name.innerHTML = !!this.decklist.name ? this.decklist.name : "Unnamed";
         $deckStateDiv.appendChild($name);
         const $editNameBtn = document.createElement('i');
         $editNameBtn.id = "edit-name";
@@ -27,13 +23,17 @@ export class DeckBuilderManager {
         const $cardCounter = document.createElement('p');
         const $totalCardCount = document.createElement('span');
         $totalCardCount.id = "total-card-count";
-        $totalCardCount.textContent = '0';
+        $totalCardCount.textContent = `${this.decklist.cardCount}`;
         $cardCounter.appendChild($totalCardCount);
         const $maxCardCount = document.createElement('span');
         $maxCardCount.id = "max-card-count";
         $maxCardCount.textContent = `/${Config.maxDeckSize} cards`;
         $cardCounter.appendChild($maxCardCount);
         $deckStateDiv.appendChild($cardCounter);
+        const $saveDeckBtn = document.createElement('button');
+        $saveDeckBtn.id = "save-decklist";
+        $saveDeckBtn.textContent = "Save deck";
+        $deckStateDiv.appendChild($saveDeckBtn);
         const $cardData = document.createElement('section');
         $cardData.classList.add('cards-data');
         this.$wrapper.appendChild($cardData);
@@ -43,7 +43,7 @@ export class DeckBuilderManager {
         $pokémonIndicator.textContent = "Pokémon cards: ";
         const $pokémonCardCount = document.createElement('span');
         $pokémonCardCount.id = "pokémon-card-count";
-        $pokémonCardCount.textContent = '0';
+        $pokémonCardCount.textContent = `${this.decklist.pokémonCount}`;
         $pokémonIndicator.appendChild($pokémonCardCount);
         $cardData.appendChild($pokémonIndicator);
         $cardData.appendChild($pokémonList);
@@ -53,7 +53,7 @@ export class DeckBuilderManager {
         $trainerIndicator.textContent = "Trainer cards: ";
         const $trainerCardCount = document.createElement('span');
         $trainerCardCount.id = "trainer-card-count";
-        $trainerCardCount.textContent = '0';
+        $trainerCardCount.textContent = `${this.decklist.trainerCount}`;
         $trainerIndicator.appendChild($trainerCardCount);
         $cardData.appendChild($trainerIndicator);
         $cardData.appendChild($trainerList);
@@ -63,56 +63,64 @@ export class DeckBuilderManager {
         $energyIndicator.textContent = "Energy cards: ";
         const $energyCardCount = document.createElement('span');
         $energyCardCount.id = "energy-card-count";
-        $energyCardCount.textContent = '0';
+        $energyCardCount.textContent = `${this.decklist.energyCount}`;
         $energyIndicator.appendChild($energyCardCount);
         $cardData.appendChild($energyIndicator);
         $cardData.appendChild($energyList);
         $editNameBtn.addEventListener('click', () => {
             $editName.innerHTML = `<input name="edit-name" id="edit-name">
 			<button type="submit">rename</button>`;
+            const input = $editName.querySelector("input");
+            input.value = this.decklist.name;
+            input.maxLength = 20;
             $deckStateDiv.querySelector("button").addEventListener('click', () => {
                 this.decklist.name = $editName.querySelector("input").value;
-                $name.textContent = this.decklist.name;
+                $name.textContent = !!this.decklist.name ? this.decklist.name : "Unnamed";
                 $name.appendChild($editNameBtn);
                 $editName.innerHTML = '';
             });
+        });
+        $saveDeckBtn.addEventListener('click', () => {
+            this.decklist.saveToLocalStorage();
+            this.$wrapper.querySelector('h2').textContent = this.decklist.name;
+            $name.appendChild($editNameBtn);
         });
     }
     addCardToCount(card) {
         switch (card.supertype) {
             case 'Pokémon':
-                this.pokémonCount++;
-                this.$wrapper.querySelector('#pokémon-card-count').textContent = `${this.pokémonCount}`;
+                this.decklist.pokémonCount++;
+                this.$wrapper.querySelector('#pokémon-card-count').textContent = `${this.decklist.pokémonCount}`;
                 break;
             case 'Trainer':
-                this.trainerCount++;
-                this.$wrapper.querySelector('#trainer-card-count').textContent = `${this.trainerCount}`;
+                this.decklist.trainerCount++;
+                this.$wrapper.querySelector('#trainer-card-count').textContent = `${this.decklist.trainerCount}`;
                 break;
             case 'Energy':
-                this.energyCount++;
-                this.$wrapper.querySelector('#energy-card-count').textContent = `${this.energyCount}`;
+                this.decklist.energyCount++;
+                this.$wrapper.querySelector('#energy-card-count').textContent = `${this.decklist.energyCount}`;
                 break;
         }
-        this.cardCount++;
-        this.$wrapper.querySelector('#total-card-count').textContent = `${this.cardCount}`;
+        this.decklist.cardCount++;
+        this.$wrapper.querySelector('#total-card-count').textContent = `${this.decklist.cardCount}`;
     }
     removeCardFromCount(card) {
         switch (card.supertype) {
             case 'Pokémon':
-                this.pokémonCount--;
-                this.$wrapper.querySelector('#pokémon-card-count').textContent = `${this.pokémonCount}`;
+                this.decklist.pokémonCount--;
+                this.$wrapper.querySelector('#pokémon-card-count').textContent = `${this.decklist.pokémonCount}`;
                 break;
             case 'Trainer':
-                this.trainerCount--;
-                this.$wrapper.querySelector('#trainer-card-count').textContent = `${this.trainerCount}`;
+                this.decklist.trainerCount--;
+                this.$wrapper.querySelector('#trainer-card-count').textContent = `${this.decklist.trainerCount}`;
                 break;
             case 'Energy':
-                this.energyCount--;
-                this.$wrapper.querySelector('#energy-card-count').textContent = `${this.energyCount}`;
+                this.decklist.energyCount--;
+                this.$wrapper.querySelector('#energy-card-count').textContent = `${this.decklist.energyCount}`;
                 break;
         }
-        this.cardCount--;
-        this.$wrapper.querySelector('#total-card-count').textContent = `${this.cardCount}`;
+        this.decklist.cardCount--;
+        this.$wrapper.querySelector('#total-card-count').textContent = `${this.decklist.cardCount}`;
     }
     render() {
         this.createHTMLContent();

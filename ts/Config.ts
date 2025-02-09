@@ -1,13 +1,15 @@
 import {key} from "../key.js";
 export type cardCount = 1 | 2 | 3;
 
-const headers: Headers = new Headers();
-headers.append("Authorization", `token ${key}`);
+let headers: Headers = new Headers();
+if (!!key) {
+	headers.append("Authorization", `token ${key}`);
+}
 
 export class Config {
 	static ApiURI:string = "https://api.pokemontcg.io/v2";
-	static regulationMark = "(regulationMark:F OR regulationMark:G OR regulationMark:H)";
-	static headers = headers;
+	
+	static headers? = headers;
 	static maxDeckSize = 60;
 	static minDeckSize = Config.maxDeckSize;
 	static benchSize: number = 5;

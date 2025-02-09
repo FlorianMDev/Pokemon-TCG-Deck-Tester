@@ -11,7 +11,7 @@ import { CardData, CardInDeck } from "./models/Card.js";
 import { Api } from "./api/Api.js";
 import { Config } from "./Config.js";
 import { FreeGame, SemiRuledGame } from "./Game.js";
-import { Decklist } from "./models/Deck.js";
+import { CopiedDecklist, Decklist } from "./models/Deck.js";
 import { CardTemplate } from "./templates/CardTemplate.js";
 import { PageManager } from "./templates/PageManager.js";
 import { FilterForm } from "./templates/FilterForm.js";
@@ -47,9 +47,21 @@ export class App {
         this.stateManager.$deckMenuBtn.addEventListener('click', () => {
             const modal = new DecklistManager();
             modal.render();
-            document.querySelector('button#new-deck-btn').addEventListener('click', () => __awaiter(this, void 0, void 0, function* () {
+            modal.$modalWrapper.querySelector('button#new-deck-btn').addEventListener('click', () => __awaiter(this, void 0, void 0, function* () {
                 yield this.newDeck();
             }));
+            modal.$modalWrapper.querySelectorAll('.decklist').forEach($deck => {
+                $deck.addEventListener('click', () => __awaiter(this, void 0, void 0, function* () {
+                    const name = $deck.querySelector('p.decklist-name').textContent;
+                    console.log(name);
+                    const deckJSON = localStorage.getItem(`decklist: ${name}`);
+                    console.log(deckJSON);
+                    const storedDeck = JSON.parse(deckJSON);
+                    let deck = new CopiedDecklist(storedDeck);
+                    console.log('loading deck');
+                    yield this.loadDeck(deck);
+                }));
+            });
         });
         this.addStateManagerListeners();
     }
@@ -65,9 +77,28 @@ export class App {
         return __awaiter(this, void 0, void 0, function* () {
             this.state = 'deck-builder';
             this.activeDeck = new Decklist();
-            this.deckBuilder = new DeckBuilderManager(this.activeDeck);
+            yield this.loadDeckBuilder(this.activeDeck);
+        });
+    }
+    loadDeck(deck) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.state = 'deck-builder';
+            this.activeDeck = deck;
+            console.log(deck);
+            yield this.loadDeckBuilder(this.activeDeck);
+            deck.cards.forEach(card => {
+                const $supertypeDiv = document.querySelector(`#deck-builder section.cards-data .sub-section.${card.supertype}`);
+                let cardInDeckTemplate = this.createCardTemplate(card, $supertypeDiv);
+                cardInDeckTemplate = CardWithDecklistBtn(cardInDeckTemplate, this.activeDeck);
+                this.addDeckCountListeners(card, cardInDeckTemplate);
+            });
+        });
+    }
+    loadDeckBuilder(deck) {
+        return __awaiter(this, void 0, void 0, function* () {
+            this.deckBuilder = new DeckBuilderManager(deck);
             this.deckBuilder.render();
-            console.log('new Deck');
+            console.log('deck loaded');
             yield this.updatePage();
         });
     }
@@ -77,6 +108,14 @@ export class App {
     addPageManagerListeners() {
         this.pageManagers.forEach((pm) => {
             let that = this;
+            pm.$firstPageBtn.addEventListener('click', function () {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (that.page > 1) {
+                        that.page = 1;
+                        yield that.updatePage();
+                    }
+                });
+            });
             pm.$previousPageBtn.addEventListener('click', function () {
                 return __awaiter(this, void 0, void 0, function* () {
                     if (that.page > 1) {
@@ -89,6 +128,14 @@ export class App {
                 return __awaiter(this, void 0, void 0, function* () {
                     if (that.page < that.apiTotalPages) {
                         that.page++;
+                        yield that.updatePage();
+                    }
+                });
+            });
+            pm.$lastPageBtn.addEventListener('click', function () {
+                return __awaiter(this, void 0, void 0, function* () {
+                    if (that.page < that.apiTotalPages) {
+                        that.page = that.apiTotalPages;
                         yield that.updatePage();
                     }
                 });
@@ -133,14 +180,8 @@ export class App {
         return __awaiter(this, void 0, void 0, function* () {
             var _a;
             const apiData = yield this.fetchCards(this.page, (_a = this.filters) !== null && _a !== void 0 ? _a : "");
-            /* if (this.state === "deck-builder") {
-                this.cardList = apiData.data.map((c: RawCardData) => {
-                    return new CardData(c, this.activeDeck!);
-                })
-            }
-            else */ this.cardList = apiData.data;
-            this.apiTotalPages = Math.ceil((apiData.totalCount + 0.001) / Config.displayedPerPage);
-            //+0.001 ensures result is at the very least 1 (page 0 makes no sense even with zero result)
+            this.cardList = apiData.data;
+            this.apiTotalPages = Math.ceil(apiData.totalCount / Config.displayedPerPage);
             this.pageManagers[0].$pageCounter.innerHTML =
                 `Page: ${this.page}/${this.apiTotalPages} (displaying ${apiData.count} cards out of ${apiData.totalCount})`;
             this.pageManagers[1].$pageCounter.innerHTML =
@@ -256,6 +297,7 @@ export class App {
             this.displayCards();
             this.pageManagers.forEach((pm) => {
                 pm.$pageSelectorInput.max = `${this.apiTotalPages}`;
+                pm.$pageSelectorInput.value = `${this.page}`;
             });
         });
     }

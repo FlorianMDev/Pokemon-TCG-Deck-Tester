@@ -1,10 +1,11 @@
 import { key } from "../key.js";
-const headers = new Headers();
-headers.append("Authorization", `token ${key}`);
+let headers = new Headers();
+if (!!key) {
+    headers.append("Authorization", `token ${key}`);
+}
 export class Config {
 }
 Config.ApiURI = "https://api.pokemontcg.io/v2";
-Config.regulationMark = "(regulationMark:F OR regulationMark:G OR regulationMark:H)";
 Config.headers = headers;
 Config.maxDeckSize = 60;
 Config.minDeckSize = Config.maxDeckSize;
