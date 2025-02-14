@@ -1,10 +1,7 @@
-import {Config, cardCount} from "../Config.js";
-import { Collection } from "./Collection.js";
-import {Deck, Decklist} from "./Deck.js";
+import {Config} from "../Config.js";
+//import { Collection } from "./Collection.js";
+import {Cardlist, Deck, Decklist} from "./Deck.js";
 import {Player} from "./Player.js";
-
-
-
 
 export interface RawCardData {
 	id: string;
@@ -36,7 +33,12 @@ export interface RawCardData {
 	cardmarket?: CardMarket;
 }
 
+function isCardData(data: any): data is CardData {
+    return data instanceof CardData || "isCardData" in data;
+}
 export class CardData {
+	
+	isCardData: boolean;//Identify as CardData when stored in localStorage and is no longer CardData
 	id: string;
 	name: string;
 	supertype: string;
@@ -49,14 +51,15 @@ export class CardData {
 	weaknesses: Weakness[];
 	resistances: Resistance[];
 	convertedRetreatCost: number;
-	set : string;
+	setName : string;
 	rarity: string;
-	legality: string;
+	legality?: string;
 	images: Images;
 	avgPrice?: number;
 
-	deckCount?: number;
-	constructor(data: RawCardData | CardData, decklist?: Decklist/*  | Collection */) {
+	count: number;
+	constructor(data: RawCardData | CardData, cardlist?: Cardlist/*  | Collection */) {
+		this.isCardData = true;
 		this.id = data.id
 		this.name = data.name;
 		this.supertype = data.supertype
@@ -69,28 +72,22 @@ export class CardData {
 		this.weaknesses = Array.from(data.weaknesses?? []);
 		this.resistances = Array.from(data.resistances?? []);
 		this.convertedRetreatCost = data.convertedRetreatCost;
-		if (data instanceof CardData) {
-			this.set = data.set;
+		if (isCardData(data)) {
+			console.log("is CardData");
+			this.setName = data.setName;
 			this.legality = data.legality;
 			this.avgPrice = data.avgPrice;
+			this.count = data.count;
 		} else {
-			this.set = `${data.set.id} - ${data.set.name}`;
-			this.legality = data.legalities.standard;
-			this.avgPrice = data.cardmarket? data.cardmarket.prices.averageSellPrice: undefined;
-		}		
+			this.setName = `${data.set.id} - ${data.set.name}`;
+			this.legality = data.legalities.standard?data.legalities.standard: undefined;
+			this.avgPrice = data.cardmarket ? data.cardmarket.prices.averageSellPrice : undefined;
+			this.count = 1;
+		}
 		this.rarity = data.rarity;
 		this.images = data.images;
 
-		if (!!decklist) {
-			if (decklist.cards.length > 0) {
-				const cardInDeck = decklist.cards.find( (card: CardInDeck) => card.id === this.id);//Check if card in decklist
-				if (!!cardInDeck) {
-					this.deckCount = cardInDeck.deckCount;
-				}
-			}
-			else this.deckCount = 0;
-		}
-	
+		
 	}
 	static maxDeckCount(card:RawCardData | CardData | CardInDeck/* , decklist:Decklist */) {
 		if (card.supertype === "Energy" && (!card.subtypes || (!!card.subtypes && card.subtypes.includes("Basic"))) ){
@@ -101,13 +98,26 @@ export class CardData {
 	}
 }
 
-
+export class CardInCollection extends CardData{
+	deckCount?: number;
+	constructor (data: RawCardData | CardData, decklist?: Decklist) {
+		super(data, decklist);
+		if (!!decklist) {
+			if (decklist.cards.length > 0) {
+				const cardInDeck = decklist.cards.find( (card: CardInDeck) => card.id === this.id);//Check if card in decklist
+				if (!!cardInDeck) {
+					this.deckCount = cardInDeck.count;
+				}
+			}
+			else this.deckCount = 0;
+		}
+	}
+}
 
 export class CardInDeck extends CardData{
-	deckCount: cardCount;
-	constructor (data: RawCardData | CardData, decklist: Decklist) {
+	constructor (data: RawCardData | CardData, decklist?: Decklist) {
 		super(data, decklist);
-		this.deckCount = 1;
+		//this.count = 1;
 	}
 }
 

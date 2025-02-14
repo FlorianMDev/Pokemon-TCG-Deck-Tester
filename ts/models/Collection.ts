@@ -1,8 +1,4 @@
-import { CardData } from "./Card.js";
+import { CardListManager } from "../templates/DecklistManager.js";
+import { CardData, RawCardData } from "./Card.js";
+import { Cardlist, Decklist } from "./Deck.js";
 
-export class Collection {
-	cards : CardData[];//CardInDeck[] ?
-	constructor() {
-		this.cards=[];
-	}
-}

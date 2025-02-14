@@ -1,6 +1,6 @@
-import { Card, CardInDeck } from "./Card.js";
+import { Card, CardInDeck, CardData } from "./Card.js";
 import { Config } from "../Config.js";
-export class Decklist {
+export class Cardlist {
     constructor() {
         this.name = "";
         this.cards = [];
@@ -8,9 +8,6 @@ export class Decklist {
         this.pokémonCount = 0;
         this.trainerCount = 0;
         this.energyCount = 0;
-        this.maxSize = Config.maxDeckSize;
-        this.minSizeToUse = Config.minDeckSize;
-        this.valid = false;
         this.active = false;
     }
     /* get deckCount() {
@@ -19,43 +16,35 @@ export class Decklist {
     set deckCount(value) {
         this._deckCount = value;
     } */
-    checkTotalNameCount(card) {
-        //Check if existing Radiant or ACE card
-        if (card.subtypes.includes('Radiant')) {
-            return this.cards.filter((c) => c.subtypes.includes('Radiant')).length; //Return 0 or 1
-        }
-        else if (card.subtypes.includes('ACE SPEC')) {
-            return this.cards.filter((c) => c.subtypes.includes('ACE SPEC')).length; //Return 0 or 1
-        }
-        let similarNameCount = 0;
-        let similarNames = this.cards.filter(c => c.name === card.name);
-        similarNames.forEach(c => {
-            similarNameCount += c.deckCount;
-        });
-        return similarNameCount;
-    }
     addCardToList(card) {
         const existingCard = this.cards.find(c => c.id === card.id);
         /* if (this.checkTotalNameCount(card) >= CardData.maxDeckCount(card)) return false; unnecessary rn-checked before*/
+        console.log(existingCard);
         if (!existingCard) {
-            if (card instanceof CardInDeck === false) {
-                this.cards.push(new CardInDeck(card, this));
+            if (card instanceof CardData === false) {
+                if (this instanceof Decklist) {
+                    this.cards.push(new CardInDeck(card, this));
+                }
+                else if (this instanceof Collection) {
+                    this.cards.push(new CardData(card));
+                }
             }
             else
                 this.cards.push(card);
         }
         else {
-            existingCard.deckCount++;
+            console.log('+1 in deck');
+            existingCard.count++;
         }
         console.log('DECKLIST:');
-        this.cards.forEach(c => console.log(c));
+        console.log(this.cards);
         return true; //In case I want to check the condition in this method and not before. Uncomment the rest if so
     }
     removeCardFromList(card) {
-        if (card.deckCount > 0) {
-            if (card.deckCount === 1)
+        if (card.count > 0) {
+            if (card.count === 1)
                 this.cards = this.cards.filter(c => c !== card);
-            card.deckCount--;
+            card.count--; //For Deckbuilder manager
         }
         console.log(this.cards);
     }
@@ -67,7 +56,7 @@ export class Decklist {
                 console.log("counter =" + i);
                 counter = i;
             }
-            this.name = counter > 1 ? `Unnamed(${counter})` : "Unnamed";
+            this.name = `Unnamed(${counter})`;
         }
         const decklist = JSON.stringify(this);
         //Set decklist in the localStorage with key being Unnamed(number) if the deck has no name
@@ -85,11 +74,37 @@ export class Decklist {
         localStorage.setItem('decklist-list', JSON.stringify(decklistArray));
     }
 }
+export class Decklist extends Cardlist {
+    constructor() {
+        super();
+        this.maxSize = Config.maxDeckSize;
+        this.minSizeToUse = Config.minDeckSize;
+        this.valid = false;
+        this.cards = [];
+    }
+    checkTotalNameCount(card) {
+        //Check if existing Radiant or ACE card
+        if (card.subtypes.includes('Radiant')) {
+            return this.cards.filter((c) => c.subtypes.includes('Radiant')).length; //Return 0 or 1
+        }
+        else if (card.subtypes.includes('ACE SPEC')) {
+            return this.cards.filter((c) => c.subtypes.includes('ACE SPEC')).length; //Return 0 or 1
+        }
+        let similarNameCount = 0;
+        let similarNames = this.cards.filter(c => c.name === card.name);
+        similarNames.forEach(c => {
+            similarNameCount += c.count;
+        });
+        return similarNameCount;
+    }
+}
+export class Collection extends Cardlist {
+}
 export class CopiedDecklist extends Decklist {
     constructor(decklist) {
         super();
         this.name = !!decklist.name ? decklist.name : "";
-        this.cards = decklist.cards;
+        this.cards = decklist.cards.map(card => new CardInDeck(card, this));
         this.cardCount = decklist.cardCount;
         this.pokémonCount = decklist.pokémonCount;
         this.trainerCount = decklist.trainerCount;
@@ -104,7 +119,7 @@ export class Deck {
     constructor(deck) {
         this.cards = [];
         deck.cards.forEach((c) => {
-            for (let i = 1; i <= c.deckCount; i++) {
+            for (let i = 1; i <= c.count; i++) {
                 this.cards.push(new Card(c, i));
             }
         });

@@ -2,17 +2,17 @@ import { Config } from "../Config.js";
 export class DeckBuilderManager {
     constructor(decklist) {
         this.$wrapper = document.querySelector('div#deck-builder');
-        this.$wrapper.classList.add('visible');
         this.decklist = decklist;
     }
     createHTMLContent() {
         this.$wrapper.innerHTML = '';
+        this.$wrapper.classList.add('visible');
         const $deckStateDiv = document.createElement('div');
         $deckStateDiv.id = 'deck-state';
         this.$wrapper.appendChild($deckStateDiv);
         const $name = document.createElement('h2');
         $name.id = "decklist-name";
-        $name.innerHTML = !!this.decklist.name ? this.decklist.name : "Unnamed";
+        $name.innerHTML = !!this.decklist.name ? this.decklist.name : "(Unnamed)";
         $deckStateDiv.appendChild($name);
         const $editNameBtn = document.createElement('i');
         $editNameBtn.id = "edit-name";
@@ -75,7 +75,7 @@ export class DeckBuilderManager {
             input.maxLength = 20;
             $deckStateDiv.querySelector("button").addEventListener('click', () => {
                 this.decklist.name = $editName.querySelector("input").value;
-                $name.textContent = !!this.decklist.name ? this.decklist.name : "Unnamed";
+                $name.textContent = !!this.decklist.name ? this.decklist.name : "(Unnamed)";
                 $name.appendChild($editNameBtn);
                 $editName.innerHTML = '';
             });

@@ -1,66 +1,78 @@
 import { Modal } from "./Modal.js";
-export class DecklistManager extends Modal {
-    constructor() {
-        super('div#decklist-manager'); //this.$modalWrapper
-        this.decklistArray = [];
+export class CardListManager extends Modal {
+    constructor(type) {
+        super(`div#${type}-manager`); //this.$modalWrapper
+        this.type = type;
+        this.cardlistArray = [];
     }
     initializeDecks() {
-        const decklistListJSON = localStorage.getItem('decklist-list');
-        if (!!decklistListJSON) {
-            this.decklistArray = JSON.parse(decklistListJSON);
-            this.decklistArray.forEach((deck) => {
-                this.appendDeckList(deck);
+        const cardlistListJSON = localStorage.getItem(`${this.type}-list`);
+        if (!!cardlistListJSON) {
+            this.cardlistArray = JSON.parse(cardlistListJSON);
+            this.cardlistArray.forEach((list) => {
+                this.appendDeckList(list);
             });
         }
     }
     appendDeckList(deck) {
-        const $container = document.createElement('div');
-        $container.classList.add('deck-container');
+        const list = this.type === 'decklist' ? 'deck' : this.type === 'collection' ? 'collection' : '';
+        deck.$container = document.createElement('div');
+        deck.$container.classList.add(`${list}-container`);
         const $deck = document.createElement('div');
-        $deck.id = `deck-${deck.name.replace(' ', '-')}`;
-        $deck.classList.add('decklist');
+        $deck.id = `${list}-${deck.name.replace(' ', '-')}`;
+        $deck.classList.add(`${this.type}`);
         $deck.innerHTML = '<i class="fa-solid fa-box-archive"></i>';
-        $container.appendChild($deck);
+        deck.$container.appendChild($deck);
         const $name = document.createElement('p');
-        $name.classList.add("decklist-name");
+        $name.classList.add(`${this.type}-name`);
         $name.textContent = deck.name;
         $deck.appendChild($name);
-        $deck.innerHTML += `<p class="deck-count">${deck.cardCount}/60 cards</p>`;
+        $deck.innerHTML += `<p class="${list}-count">${deck.cardCount}${this.type === 'decklist' ? '/60' : ''} cards</p>`;
         const $deleteBtn = document.createElement('button');
         $deleteBtn.classList.add('delete-btn');
         $deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can"></i>';
-        $container.appendChild($deleteBtn);
+        deck.$container.appendChild($deleteBtn);
         $deleteBtn.addEventListener('click', () => {
-            localStorage.removeItem(`decklist: ${deck.name}`);
-            const decklist = JSON.stringify(this);
-            //Get the decklist list
-            let decklistList = localStorage.getItem('decklist-list');
-            let decklistArray = [];
-            decklistArray = JSON.parse(decklistList);
-            decklistArray = decklistArray.filter(d => d.name !== deck.name);
-            localStorage.setItem('decklist-list', JSON.stringify(decklistArray));
+            this.deleteDecklist(deck);
         });
-        this.$modalWrapper.querySelector('div.decklist-container').appendChild($container);
+        this.$modalWrapper.querySelector(`div.${this.type}-container`).appendChild(deck.$container);
         this.onCloseButton($deck);
     }
     createModalContent() {
+        const list = this.type === 'decklist' ? 'deck' : this.type === 'collection' ? 'collection' : '';
         this.$modalWrapper.classList.add('modal-on');
-        this.$modalWrapper.innerHTML = `<button type="button" id="new-deck-btn">New deck</button>`;
+        this.$modalWrapper.innerHTML = `<button type="button" id="new-${list}-btn">New ${list}</button>`;
         const closeBtn = document.createElement('button');
         closeBtn.classList.add("close-btn");
-        closeBtn.textContent = "Close Deck Menu";
+        closeBtn.textContent = `Close ${list} Menu`;
         this.$modalWrapper.appendChild(closeBtn);
-        this.addListeners();
+        this.addListeners(list);
         const $containerDiv = document.createElement('div');
-        $containerDiv.classList.add('decklist-container');
+        $containerDiv.classList.add(`${this.type}-container`);
         this.$modalWrapper.appendChild($containerDiv);
         this.initializeDecks();
     }
-    addListeners() {
+    deleteDecklist(deck) {
+        localStorage.removeItem(`${this.type}: ${deck.name}`);
+        const decklist = JSON.stringify(this);
+        //Get the decklist list
+        let decklistList = localStorage.getItem(`${this.type}-list`);
+        let cardlistArray = [];
+        cardlistArray = JSON.parse(decklistList);
+        cardlistArray = cardlistArray.filter(d => d.name !== deck.name);
+        localStorage.setItem(`${this.type}-list`, JSON.stringify(cardlistArray));
+        deck.$container.remove();
+    }
+    addListeners(list) {
         this.onCloseButton(this.$modalWrapper.querySelector('.close-btn'));
-        this.onCloseButton(this.$modalWrapper.querySelector('#new-deck-btn'));
+        this.onCloseButton(this.$modalWrapper.querySelector(`#new-${list}-btn`));
     }
     render() {
         this.createModalContent();
+    }
+}
+export class DecklistManager extends CardListManager {
+    constructor() {
+        super('decklist');
     }
 }

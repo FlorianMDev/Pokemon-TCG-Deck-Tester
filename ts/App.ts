@@ -2,7 +2,7 @@ import {CardData, CardInDeck, RawCardData} from "./models/Card.js";
 import {Api} from "./api/Api.js";
 import {Config} from "./Config.js";
 import {Game, FreeGame, SemiRuledGame} from "./Game.js";
-import {CopiedDecklist, Deck, Decklist} from "./models/Deck.js";
+import {Cardlist, Collection, CopiedDecklist, Deck, Decklist} from "./models/Deck.js";
 import {CardTemplate} from "./templates/CardTemplate.js";
 import { PageManager } from "./templates/PageManager.js";
 import { FilterForm } from "./templates/FilterForm.js";
@@ -12,8 +12,9 @@ import { CardModal } from "./templates/CardModal.js";
 import { StateManager } from "./templates/StateManager.js";
 import { Modal } from "./templates/Modal.js";
 import { CardWithDecklistBtn } from "./decorators/CardWithDecklistBtn.js";
-import { DecklistManager } from "./templates/DecklistManager.js";
+import { CardListManager, DecklistManager } from "./templates/DecklistManager.js";
 import { DeckBuilderManager } from "./templates/DeckBuilderManager.js";
+import { CollectionManager } from "./templates/CollectionManager.js";
 
 export class App {
 	api: Api;
@@ -21,87 +22,123 @@ export class App {
 	username: string;
 	
 	state: string;
-	stateManager?: StateManager;
+	stateManager: StateManager;
 	page: number;	
 	apiTotalPages?: number;
-	pageManagers: PageManager[];	
+	pageManagers: PageManager[];
 	filters?: string;	
 	filterForm?: FilterForm;
 	deckBuilder?: DeckBuilderManager;
 	cardProperties?: CardProperties;
 	$cardTemplatesWrapper: HTMLDivElement;
 
-	private _activeDeck?: Decklist;
+	private _activeList?: Decklist | Collection;
 
 	constructor() {		
 		this.api = new Api(`${Config.ApiURI}`);
 		this.cardList = [];
-		this.username = "";		
+		this.username = "";
 
 		this.state = "card-list";
 		this.page = 1;
 		this.pageManagers = [];
-		this.$cardTemplatesWrapper = document.querySelector('section.cards-data')!;		
-	}
-	get activeDeck(): Decklist {
-		return this._activeDeck!;
-	}
-	set activeDeck(deck: Decklist) {
-		this._activeDeck = deck;
-	}
-	/* set deckMenu(state: boolean) {
-		this._deckMenu = state;
-	} */
-
-	loadStateManager() {
+		this.$cardTemplatesWrapper = document.querySelector('section.cards-data')!;
 		this.stateManager = new StateManager(this.state);
-		this.stateManager.createHTMLContent();
-		this.stateManager.$deckMenuBtn!.addEventListener('click', () => {
-			const modal = new DecklistManager();
-			modal.render();
-			modal.$modalWrapper.querySelector('button#new-deck-btn')!.addEventListener('click', async () => {
-				await this.newDeck();
-			})
-			modal.$modalWrapper.querySelectorAll('.decklist').forEach($deck => {
-				$deck.addEventListener('click', async () => {
-					const name: string = $deck.querySelector('p.decklist-name')!.textContent!;
-					console.log(name);
-					
-					const deckJSON: string = localStorage.getItem(`decklist: ${name}`)!;
-					console.log(deckJSON);
-					
-					const storedDeck = JSON.parse(deckJSON) as Decklist;
-					let deck: Decklist = new CopiedDecklist(storedDeck);					
-					
-					console.log('loading deck');
-					await this.loadDeck(deck);					
-				})
-			});
-		})	
-		this.addStateManagerListeners();
 	}
-	addStateManagerListeners() {
-		this.stateManager!.$displayBtns.forEach((btn:HTMLButtonElement) => {
-			addEventListener('click', async () => {
-				this.state = this.stateManager!.updateStateTo(btn.id);
-				await this.updatePage();
+	get activeList(): Decklist | Collection {
+		return this._activeList!;
+	}
+	set activeList(deck: Decklist | Collection) {
+		this._activeList = deck;
+	}
+		
+	loadStateManager() {
+		this.stateManager.createHTMLContent();
+		/* this.createNewCardList(); */
+		this.stateManager.$deckMenuBtn!.addEventListener('click', () => {
+			this.createNewCardListMenu('decklist');
+		})
+		this.stateManager.$collectionMenuBtn!.addEventListener('click', () => {
+			this.createNewCardListMenu('collection');
+		})
+		if (this.state !== 'card-list') {
+			this.stateManager!.$defaultCardListBtn!.addEventListener('click', async () => {
+				this.cardListMode();
+			})
+		}
+	}
+	createNewCardListMenu(type:string) {
+		const list: string = type === 'decklist'? 'deck': type === 'collection' ? 'collection': '';
+		let modal = null;
+		if (type === 'decklist') modal = new DecklistManager();
+		else modal = new CollectionManager();
+		modal.render();
+		modal.$modalWrapper.querySelector(`button#new-${list}-btn`)!.addEventListener('click', async () => {
+			if (type === 'decklist') await this.newDeck();
+			else if (type === 'collection') await this.newCollection();
+		})
+		modal.$modalWrapper.querySelectorAll(`.${type}`).forEach($deck => {
+			$deck.addEventListener('click', async () => {
+				const name: string = $deck.querySelector(`p.${type}-name`)!.textContent!;
+				const deckJSON: string = localStorage.getItem(`${type}: ${name}`)!;
+
+				if (type === 'decklist') {
+					const storedDeck = JSON.parse(deckJSON) as Decklist;
+					let deck: CopiedDecklist = new CopiedDecklist(storedDeck);
+					console.log(deck.cards);
+					await this.loadDeck(deck);
+				} else if (type === 'collection') {
+					const storedDeck = JSON.parse(deckJSON) as Collection;
+					let collection: Collection = storedDeck;
+					await this.loadCollection(collection);
+				}
 			})
 		});
 	}
-	async newDeck() {		
+	updateStateManager() {
+		this.stateManager!.updateStateTo(this.state);
+		this.loadStateManager();
+	}
+	async cardListMode() {
+		if (this.state === 'deck-builder') {
+			this.deckBuilder!.$wrapper.innerHTML='';
+			this.deckBuilder!.$wrapper.classList.remove('visible');
+		}
+		this.state = 'card-list';
+		this.updateStateManager();
+		await this.updatePage();
+	}
+
+	async newCollection() {
+		this.state = 'collection-manager';
+		this.updateStateManager();
+		this._activeList = new Collection();
+		await this.updatePage();
+	}
+	async loadCollection(collection: Collection) {
+		this.state = 'collection-manager';
+		this.updateStateManager();
+		this.activeList = collection;
+		console.log(collection);
+		await this.updatePage();
+	}
+
+	async newDeck() {
 		this.state = 'deck-builder';
-		this.activeDeck = new Decklist();
-		await this.loadDeckBuilder(this.activeDeck);
+		this.updateStateManager();
+		this.activeList = new Decklist();
+		await this.loadDeckBuilder(this.activeList as Decklist);
 	}
 	async loadDeck(deck: Decklist) {
 		this.state = 'deck-builder';
-		this.activeDeck = deck;
+		this.updateStateManager();
+		this.activeList = deck;
 		console.log(deck);
-		await this.loadDeckBuilder(this.activeDeck);
-		deck.cards.forEach(card => {
+		await this.loadDeckBuilder(this.activeList as Decklist);
+		deck.cards.forEach((card: CardInDeck) => {
 			const $supertypeDiv: HTMLElement = document.querySelector(`#deck-builder section.cards-data .sub-section.${card.supertype}`)!;
 			let cardInDeckTemplate: CardTemplate = this.createCardTemplate(card,$supertypeDiv);
-			cardInDeckTemplate = CardWithDecklistBtn(cardInDeckTemplate, this.activeDeck);
+			cardInDeckTemplate = CardWithDecklistBtn(cardInDeckTemplate, this.activeList as Decklist);
 			this.addDeckCountListeners(card, cardInDeckTemplate);
 		})
 	}
@@ -202,72 +239,88 @@ export class App {
 		this.addPageManagerListeners();
 	}
 	createCardTemplate (card: RawCardData | CardData | CardInDeck, $wrapper: HTMLElement): CardTemplate {
-			let cardTemplate = new CardTemplate(card);
-			const $cardTemplate: HTMLDivElement = cardTemplate.createHTMLCard();
-			$wrapper.appendChild($cardTemplate);
-			cardTemplate = cardWithModal(cardTemplate);
-			return cardTemplate;
+		let cardTemplate = new CardTemplate(card);
+		const $cardTemplate: HTMLDivElement = cardTemplate.createHTMLCard();
+		$wrapper.appendChild($cardTemplate);
+		cardTemplate = cardWithModal(cardTemplate);
+		return cardTemplate;
 	}
 	addDeckCountListeners(card: RawCardData | CardData, cardTemplate: CardTemplate) {
 		const $deckCounter: HTMLElement = cardTemplate.$wrapper.querySelector("span.deck-counter")!;
 		const $cardListCardsData: HTMLElement = document.querySelector('.center-div section.cards-data')!;
-		const $deckBuilderCardsData: HTMLElement = document.querySelector('#deck-builder section.cards-data')!;
+		const $deckBuilderCardsData: HTMLElement | null = document.querySelector('#deck-builder section.cards-data');
 
 		const AddToDecklistBtn: HTMLButtonElement = cardTemplate.$wrapper.querySelector('button.plus-1')!;
 		AddToDecklistBtn.addEventListener(('click'), () => {
-			if (this.activeDeck.checkTotalNameCount(card) >= CardData.maxDeckCount(card)) return;
-
-			let	existingCard: CardInDeck = this.activeDeck.cards.find(c => c.id === card.id)!;
-			if(!existingCard) {
-				let newCardInDeck = new CardInDeck(card, this.activeDeck);
-				this.activeDeck.addCardToList(newCardInDeck);
-				$deckCounter.textContent = `1`;
-				const $supertypeDiv: HTMLElement = $deckBuilderCardsData.querySelector(`.sub-section.${card.supertype}`)!;
-				
-				let cardInDeckTemplate: CardTemplate = this.createCardTemplate(newCardInDeck,$supertypeDiv);
-				cardInDeckTemplate = CardWithDecklistBtn(cardInDeckTemplate, this.activeDeck);
-				this.addDeckCountListeners(newCardInDeck, cardInDeckTemplate);
-			} else {
-				this.activeDeck.addCardToList(existingCard);
-				$deckCounter.textContent = `${existingCard.deckCount}`;
-				if (card instanceof CardInDeck) {
-					const $cardListData = $cardListCardsData.querySelector(`.card-template.${card.id}`);
-					if (!!$cardListData)
-						$cardListData.querySelector('.deck-counter')!.textContent = `${card.deckCount}`;
-				} else {
-					const $deckBuilderDeckCount: HTMLSpanElement = $deckBuilderCardsData.querySelector(`.${card.id}`)!;
-					$deckBuilderDeckCount.querySelector('.deck-counter')!.textContent = `${existingCard.deckCount}`;
+			if (this.activeList instanceof Decklist) {
+				if (this.activeList.checkTotalNameCount(card) >= CardData.maxDeckCount(card)){
+					return;
 				}
 			}
-			this.deckBuilder!.addCardToCount(card);
+			
+			let	existingCard: CardInDeck = this.activeList.cards.find(c => c.id === card.id)!;
+			if(!existingCard) {
+				$deckCounter.textContent = `1`;
+				if (this.state === 'deck-builder') {
+					let newCardInDeck = new CardInDeck(card, this.activeList as Decklist);
+					this.activeList.addCardToList(newCardInDeck);
+					const $supertypeDiv: HTMLElement = $deckBuilderCardsData!.querySelector(`.sub-section.${card.supertype}`)!;
+					let cardInDeckTemplate: CardTemplate = this.createCardTemplate(newCardInDeck,$supertypeDiv);
+					cardInDeckTemplate = CardWithDecklistBtn(cardInDeckTemplate, this.activeList as Decklist);
+					this.addDeckCountListeners(newCardInDeck, cardInDeckTemplate);
+				} else if (this.state === 'collection-manager') {
+					let newCardInCollection = new CardData(card, this.activeList as Collection);
+					this.activeList.addCardToList(newCardInCollection);
+				}
+			} else {
+				this.activeList.addCardToList(existingCard);
+				$deckCounter.textContent = `${existingCard.count}`;
+				if (card instanceof CardInDeck) {
+					console.log('listener in deck');
+					const $cardListData = $cardListCardsData.querySelector(`.card-template.${card.id}`);
+					if (!!$cardListData) {
+						console.log('card in list');						
+						$cardListData.querySelector('.deck-counter')!.textContent = `${card.count}`;
+					}
+				} else if (this.state === 'deck-builder') {
+					const $deckBuilderDeckCount: HTMLSpanElement = $deckBuilderCardsData!.querySelector(`.${card.id}`)!;
+					$deckBuilderDeckCount.querySelector('.deck-counter')!.textContent = `${existingCard.count}`;
+				}
+			}
+			if (this.state === 'deck-builder')this.deckBuilder!.addCardToCount(card);
 		})
 		const RemoveFromDecklistBtn: HTMLButtonElement = cardTemplate.$wrapper.querySelector('button.minus-1')!;
 		RemoveFromDecklistBtn.addEventListener('click', () => {
 			let cardInDeck: CardInDeck | void = undefined;
 			if (card instanceof CardInDeck) {
+				console.log('listener in deck');
 				cardInDeck = card;
 				const $cardListData = $cardListCardsData.querySelector(`.card-template.${card.id}`);
-				if (cardInDeck.deckCount === 1) {
+				if (cardInDeck.count === 1) {
 					cardTemplate.$wrapper.remove();
 				}
-				this.activeDeck.removeCardFromList(cardInDeck!);
+				this.activeList.removeCardFromList(cardInDeck!);
+				console.log($cardListData);
+				
 				if (!!$cardListData)
-					$cardListData.querySelector('.deck-counter')!.textContent = `${card.deckCount}`;
+					$cardListData.querySelector('.deck-counter')!.textContent = `${card.count}`;
 			} else {
-				cardInDeck = this.activeDeck.cards.find(c => c.id === card.id);
+				cardInDeck = this.activeList.cards.find(c => c.id === card.id);
 				if(!cardInDeck) return;
-
-				const $deckBuilderData: HTMLElement = $deckBuilderCardsData.querySelector(`.card-template.${card.id}`)!;
-				if (cardInDeck.deckCount === 1) {
-					$deckBuilderData.remove();
+				
+				this.activeList.removeCardFromList(cardInDeck!);
+				if (this.state === 'deck-builder') {
+					const $deckBuilderData: HTMLElement = $deckBuilderCardsData!.querySelector(`.card-template.${card.id}`)!;
+					if (cardInDeck.count === 0) {
+						$deckBuilderData.remove();
+					}
+					$deckBuilderData.querySelector('span.deck-counter')!.textContent = `${cardInDeck.count}`;
 				}
-				this.activeDeck.removeCardFromList(cardInDeck!);
-				$deckBuilderData.querySelector('span.deck-counter')!.textContent = `${cardInDeck.deckCount}`;
 			}
 			console.log(cardInDeck);
-			this.deckBuilder!.removeCardFromCount(card);
+			if (this.state === 'deck-builder')this.deckBuilder!.removeCardFromCount(card);
 			if (!cardTemplate.$wrapper) return;
-			$deckCounter.textContent = `${cardInDeck.deckCount}`;
+			$deckCounter.textContent = `${cardInDeck.count}`;
 		})
 	}
 	displayCards() {
@@ -277,8 +330,8 @@ export class App {
 
 		this.cardList.forEach((card: RawCardData | CardData) => {
 			let cardTemplate:CardTemplate = this.createCardTemplate(card, this.$cardTemplatesWrapper);
-			if (this.state === 'deck-builder') {
-				cardTemplate = CardWithDecklistBtn(cardTemplate, this.activeDeck);
+			if (this.state === 'deck-builder' || this.state === 'collection-manager') {
+				cardTemplate = CardWithDecklistBtn(cardTemplate, this.activeList);
 				this.addDeckCountListeners(card, cardTemplate);
 			}
 		})
@@ -295,13 +348,13 @@ export class App {
 	}
 
 	startGame(mode: string) {
-		//Change here when deck and difficulty selections are available
+		/* //Change here when deck and difficulty selections are available
 		const CPUDeck: Decklist = new Decklist;
 		let game = null;
-		if (mode === "semi-ruled") game = new SemiRuledGame(this.activeDeck, CPUDeck, this.username);
-		else game = new FreeGame(this.activeDeck, CPUDeck, this.username);
+		if (mode === "semi-ruled") game = new SemiRuledGame(this.activeList, CPUDeck, this.username);
+		else game = new FreeGame(this.activeList, CPUDeck, this.username);
 
-		game.play();
+		game.play(); */
 	}
 	async main(){
 		this.loadStateManager();

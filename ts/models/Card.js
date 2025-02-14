@@ -1,7 +1,11 @@
 import { Config } from "../Config.js";
+function isCardData(data) {
+    return data instanceof CardData || "isCardData" in data;
+}
 export class CardData {
-    constructor(data, decklist /*  | Collection */) {
+    constructor(data, cardlist /*  | Collection */) {
         var _a, _b, _c, _d, _e, _f;
+        this.isCardData = true;
         this.id = data.id;
         this.name = data.name;
         this.supertype = data.supertype;
@@ -14,28 +18,21 @@ export class CardData {
         this.weaknesses = Array.from((_e = data.weaknesses) !== null && _e !== void 0 ? _e : []);
         this.resistances = Array.from((_f = data.resistances) !== null && _f !== void 0 ? _f : []);
         this.convertedRetreatCost = data.convertedRetreatCost;
-        if (data instanceof CardData) {
-            this.set = data.set;
+        if (isCardData(data)) {
+            console.log("is CardData");
+            this.setName = data.setName;
             this.legality = data.legality;
             this.avgPrice = data.avgPrice;
+            this.count = data.count;
         }
         else {
-            this.set = `${data.set.id} - ${data.set.name}`;
-            this.legality = data.legalities.standard;
+            this.setName = `${data.set.id} - ${data.set.name}`;
+            this.legality = data.legalities.standard ? data.legalities.standard : undefined;
             this.avgPrice = data.cardmarket ? data.cardmarket.prices.averageSellPrice : undefined;
+            this.count = 1;
         }
         this.rarity = data.rarity;
         this.images = data.images;
-        if (!!decklist) {
-            if (decklist.cards.length > 0) {
-                const cardInDeck = decklist.cards.find((card) => card.id === this.id); //Check if card in decklist
-                if (!!cardInDeck) {
-                    this.deckCount = cardInDeck.deckCount;
-                }
-            }
-            else
-                this.deckCount = 0;
-        }
     }
     static maxDeckCount(card /* , decklist:Decklist */) {
         if (card.supertype === "Energy" && (!card.subtypes || (!!card.subtypes && card.subtypes.includes("Basic")))) {
@@ -48,10 +45,25 @@ export class CardData {
             return Config.maxCardDeckCount;
     }
 }
+export class CardInCollection extends CardData {
+    constructor(data, decklist) {
+        super(data, decklist);
+        if (!!decklist) {
+            if (decklist.cards.length > 0) {
+                const cardInDeck = decklist.cards.find((card) => card.id === this.id); //Check if card in decklist
+                if (!!cardInDeck) {
+                    this.deckCount = cardInDeck.count;
+                }
+            }
+            else
+                this.deckCount = 0;
+        }
+    }
+}
 export class CardInDeck extends CardData {
     constructor(data, decklist) {
         super(data, decklist);
-        this.deckCount = 1;
+        //this.count = 1;
     }
 }
 export class Card {

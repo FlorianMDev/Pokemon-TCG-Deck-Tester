@@ -1,11 +1,11 @@
 import { CardTemplate } from "../templates/CardTemplate.js";
 import { Card, CardData, CardInDeck, RawCardData } from "../models/Card.js";
-import { Decklist } from "../models/Deck.js";
+import { Collection, Decklist } from "../models/Deck.js";
 import { Config } from "../Config.js";
 import { DeckBuilderManager } from "../templates/DeckBuilderManager.js";
 import { cardWithModal } from "./CardWithModal.js";
 
-export function CardWithDecklistBtn (cardTemplate: CardTemplate, decklist:Decklist){
+export function CardWithDecklistBtn (cardTemplate: CardTemplate, cardlist:Decklist | Collection){
 	const $cardName: HTMLDivElement = cardTemplate.$wrapper.querySelector('div.card-name')!;
 	const $deckCountDiv: HTMLDivElement = document.createElement('div');
 	$deckCountDiv.classList.add('deck-count');
@@ -13,10 +13,10 @@ export function CardWithDecklistBtn (cardTemplate: CardTemplate, decklist:Deckli
 
 
 	let deckCount:number = 0;
-	if (decklist.cards.length > 0) {
-		const cardInDeck = decklist.cards.find( (card: CardInDeck) => card.id === cardTemplate.cardData.id);//Check if card in decklist
+	if (cardlist.cards.length > 0) {
+		const cardInDeck = cardlist.cards.find( (card: CardInDeck) => card.id === cardTemplate.cardData.id);//Check if card in decklist
 		if (!!cardInDeck) {
-			deckCount = cardInDeck.deckCount;
+			deckCount = cardInDeck.count;
 		}
 	}
 	const RemoveFromDecklistBtn: HTMLButtonElement = document.createElement('button');
@@ -30,14 +30,16 @@ export function CardWithDecklistBtn (cardTemplate: CardTemplate, decklist:Deckli
 	$deckCounter.textContent = `${deckCount}`;
 	$deckCountDiv.appendChild($deckCounter);
 
-	const $slash: HTMLSpanElement = document.createElement('span');
-	$slash.textContent = '/';
-	$deckCountDiv.appendChild($slash);
+	if (cardlist instanceof Decklist) {
+		const $slash: HTMLSpanElement = document.createElement('span');
+		$slash.textContent = '/';
+		$deckCountDiv.appendChild($slash);
 
-	const $maxCount: HTMLSpanElement = document.createElement('span');
-	$deckCountDiv.appendChild($maxCount);
-	$maxCount.textContent = `${CardData.maxDeckCount(cardTemplate.cardData)}`;
-
+		const $maxCount: HTMLSpanElement = document.createElement('span');
+		$deckCountDiv.appendChild($maxCount);
+		$maxCount.textContent = `${CardData.maxDeckCount(cardTemplate.cardData)}`;
+	}
+	
 	const AddToDecklistBtn: HTMLButtonElement = document.createElement('button');
 	AddToDecklistBtn.type = "button";
 	AddToDecklistBtn.classList.add("plus-1");

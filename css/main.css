@@ -153,16 +153,6 @@ div#filter-div fieldset#filter-convertedRetreatCost div{
 .modal-on {
 	z-index: 3;
 }
-/* DECKLIST MODAL */
-
-#decklist-manager.modal-on {
-	position: fixed;
-	top:0;
-	left:0;
-	background-color: white;
-	height: 100%;
-	width: 100%;
-}
 
 /* CARD MODALS */
 div.center-div {
@@ -319,41 +309,50 @@ div#deck-builder.visible i.fa-pen-to-square{
 	margin: 0 2%;
 }
 
-/* DECK MENU */
-div#decklist-manager {
+/* DECK & COLLECTION MENU*/
+
+:is(#decklist-manager, #collection-manager).modal-on {
+	position: fixed;
+	top:0;
+	left:0;
+	background-color: white;
+	height: 100%;
+	width: 100%;
+}
+:is(#decklist-manager, #collection-manager) {
 	text-align: center;
 }
-div#decklist-manager > button {
+:is(#decklist-manager, #collection-manager) > button {
 	margin: 0.5rem;
 }
-div.decklist-container {
+:is(div.decklist-container, div.collection-container) {
 	display: flex;
 	justify-content: center;
 	flex-wrap: wrap;
 }
-div.decklist-container > .deck-container{
+:is(div.decklist-container, div.collection-container) > .deck-container{
 	width: 12%;
 	border: solid black 2px;
 	margin: 1rem 2rem;
 	position: relative;
 }
-div.decklist-container .decklist{
+:is(div.decklist-container, div.collection-container) .decklist{
 	text-align: center;
 	margin: 1rem 2rem;
 }
-div.decklist-container button.delete-btn{
+:is(div.decklist-container, div.collection-container) button.delete-btn{
 	position: absolute;
 	bottom: 0;
 	right: 0;
 	font-size: 1.4rem;
 }
-div.decklist-container .decklist > i.fa-box-archive{
+:is(div.decklist-container, div.collection-container) .decklist > i.fa-box-archive{
 	font-size: 6rem;
 }
-div.decklist-container .decklist > p{
+:is(div.decklist-container, div.collection-container) .decklist > p{
 	margin: 0.25rem;
 }
-div.decklist-container .decklist > p.decklist-name{
+:is(div.decklist-container, div.collection-container) .decklist > p.decklist-name{
 	overflow: hidden;
 }
 

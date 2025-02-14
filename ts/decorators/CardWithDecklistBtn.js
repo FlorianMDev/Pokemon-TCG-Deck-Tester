@@ -1,14 +1,15 @@
 import { CardData } from "../models/Card.js";
-export function CardWithDecklistBtn(cardTemplate, decklist) {
+import { Decklist } from "../models/Deck.js";
+export function CardWithDecklistBtn(cardTemplate, cardlist) {
     const $cardName = cardTemplate.$wrapper.querySelector('div.card-name');
     const $deckCountDiv = document.createElement('div');
     $deckCountDiv.classList.add('deck-count');
     $cardName.appendChild($deckCountDiv);
     let deckCount = 0;
-    if (decklist.cards.length > 0) {
-        const cardInDeck = decklist.cards.find((card) => card.id === cardTemplate.cardData.id); //Check if card in decklist
+    if (cardlist.cards.length > 0) {
+        const cardInDeck = cardlist.cards.find((card) => card.id === cardTemplate.cardData.id); //Check if card in decklist
         if (!!cardInDeck) {
-            deckCount = cardInDeck.deckCount;
+            deckCount = cardInDeck.count;
         }
     }
     const RemoveFromDecklistBtn = document.createElement('button');
@@ -20,12 +21,14 @@ export function CardWithDecklistBtn(cardTemplate, decklist) {
     $deckCounter.classList.add("deck-counter");
     $deckCounter.textContent = `${deckCount}`;
     $deckCountDiv.appendChild($deckCounter);
-    const $slash = document.createElement('span');
-    $slash.textContent = '/';
-    $deckCountDiv.appendChild($slash);
-    const $maxCount = document.createElement('span');
-    $deckCountDiv.appendChild($maxCount);
-    $maxCount.textContent = `${CardData.maxDeckCount(cardTemplate.cardData)}`;
+    if (cardlist instanceof Decklist) {
+        const $slash = document.createElement('span');
+        $slash.textContent = '/';
+        $deckCountDiv.appendChild($slash);
+        const $maxCount = document.createElement('span');
+        $deckCountDiv.appendChild($maxCount);
+        $maxCount.textContent = `${CardData.maxDeckCount(cardTemplate.cardData)}`;
+    }
     const AddToDecklistBtn = document.createElement('button');
     AddToDecklistBtn.type = "button";
     AddToDecklistBtn.classList.add("plus-1");

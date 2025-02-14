@@ -17,7 +17,7 @@ export class Api {
 
 	async getCards(displayedPerPage: number, page: number, filters?: string): Promise<ApiResult> {
 		return fetch(
-		`${this._url}/cards?pageSize=${displayedPerPage}&page=${page}${!!filters?` &q=${filters}`:""}`,
+		`${this._url}/cards?pageSize=${displayedPerPage}&orderBy=set.releaseDate&page=${page}${!!filters?` &q=${filters}`:""}`,
 		{headers: Config.headers})
 			.then(res => res.json())
 			.catch(err => {

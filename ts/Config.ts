@@ -1,5 +1,4 @@
 import {key} from "../key.js";
-export type cardCount = 1 | 2 | 3;
 
 let headers: Headers = new Headers();
 if (!!key) {
