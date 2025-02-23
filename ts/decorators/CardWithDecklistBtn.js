@@ -1,17 +1,12 @@
-import { CardData } from "../models/Card.js";
+import { CardData, CardInCollection, CardInDeck } from "../models/Card.js";
 import { Decklist } from "../models/Deck.js";
 export function CardWithDecklistBtn(cardTemplate, cardlist) {
+    const card = cardTemplate.cardData;
     const $cardName = cardTemplate.$wrapper.querySelector('div.card-name');
     const $deckCountDiv = document.createElement('div');
     $deckCountDiv.classList.add('deck-count');
     $cardName.appendChild($deckCountDiv);
-    let deckCount = 0;
-    if (cardlist.cards.length > 0) {
-        const cardInDeck = cardlist.cards.find((card) => card.id === cardTemplate.cardData.id); //Check if card in decklist
-        if (!!cardInDeck) {
-            deckCount = cardInDeck.count;
-        }
-    }
+    let deckCount = getDeckCount(card, cardlist);
     const RemoveFromDecklistBtn = document.createElement('button');
     RemoveFromDecklistBtn.type = "button";
     RemoveFromDecklistBtn.classList.add("minus-1");
@@ -27,7 +22,11 @@ export function CardWithDecklistBtn(cardTemplate, cardlist) {
         $deckCountDiv.appendChild($slash);
         const $maxCount = document.createElement('span');
         $deckCountDiv.appendChild($maxCount);
-        $maxCount.textContent = `${CardData.maxDeckCount(cardTemplate.cardData)}`;
+        if (card instanceof CardInDeck) {
+            $maxCount.textContent = `${card.maxCount}`;
+        }
+        else
+            $maxCount.textContent = `${CardData.maxDeckCount(card)}`;
     }
     const AddToDecklistBtn = document.createElement('button');
     AddToDecklistBtn.type = "button";
@@ -36,14 +35,28 @@ export function CardWithDecklistBtn(cardTemplate, cardlist) {
     $deckCountDiv.appendChild(AddToDecklistBtn);
     /* AddToDecklistBtn.addEventListener('click', () => {
         const $deckCounter: HTMLElement = cardTemplate.$wrapper.querySelector("span.deck-counter")!;
-        if (parseInt($deckCounter.textContent!) < CardData.maxDeckCount(cardTemplate.cardData)) {
-            let newCardInDeck = new CardInDeck(cardTemplate.cardData, decklist);
+        if (parseInt($deckCounter.textContent!) < CardData.maxDeckCount(card)) {
+            let newCardInDeck = new CardInDeck(card, decklist);
             decklist.addCardToList(newCardInDeck);
             $deckCounter.textContent = `${newCardInDeck.deckCount}`;
         }
     }) */
     return cardTemplate;
 }
-function updateDeckCount(cardTemplate) {
-    const $deckCounter = cardTemplate.$wrapper.querySelector("span.deck-counter");
+function getDeckCount(card, cardlist) {
+    let deckCount = 0;
+    if (card instanceof CardInDeck) {
+        deckCount = card.count;
+    }
+    else if (cardlist.cards.length > 0) {
+        if (card instanceof CardInCollection && !!card.deckCount) {
+            deckCount = card.deckCount;
+            return deckCount;
+        }
+        const cardInDeck = cardlist.cards.find((c) => c.id === card.id); //Check if card in decklist
+        if (!!cardInDeck) {
+            deckCount = cardInDeck.count;
+        }
+    }
+    return deckCount;
 }

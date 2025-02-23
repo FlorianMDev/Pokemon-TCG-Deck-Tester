@@ -1,7 +1,7 @@
-import { Card, CardInDeck, CardData } from "./Card.js";
+import { Card, CardInDeck, CardData, CardInCollection } from "./Card.js";
 import { Config } from "../Config.js";
 export class Cardlist {
-    constructor() {
+    constructor(type) {
         this.name = "";
         this.cards = [];
         this.cardCount = 0;
@@ -9,6 +9,7 @@ export class Cardlist {
         this.trainerCount = 0;
         this.energyCount = 0;
         this.active = false;
+        this.type = type;
     }
     /* get deckCount() {
         return this._deckCount;
@@ -52,7 +53,7 @@ export class Cardlist {
         //If unnamed deck, add a counter to save it as Unnamed(number)
         if (!this.name) {
             let counter = 1;
-            for (let i = 1; !!localStorage.getItem(`decklist: Unnamed(${counter})`); i++) {
+            for (let i = 1; !!localStorage.getItem(`${this.type}: Unnamed(${counter})`); i++) {
                 console.log("counter =" + i);
                 counter = i;
             }
@@ -61,9 +62,9 @@ export class Cardlist {
         const decklist = JSON.stringify(this);
         //Set decklist in the localStorage with key being Unnamed(number) if the deck has no name
         //decklist was declared before modifying this.name so the unnamed deck object will have no name property
-        localStorage.setItem(`decklist: ${this.name}`, decklist);
+        localStorage.setItem(`${this.type}: ${this.name}`, decklist);
         //Get the decklist list
-        let decklistList = localStorage.getItem('decklist-list');
+        let decklistList = localStorage.getItem(`${this.type}-list`);
         let decklistArray = [];
         if (!!decklistList) {
             decklistArray = JSON.parse(decklistList);
@@ -71,12 +72,12 @@ export class Cardlist {
         //Check if existing names exist to erase older version if not unnamed deck
         decklistArray = decklistArray.filter(d => d.name !== `${this.name}`);
         decklistArray.splice(0, 0, { name: `${this.name}`, cardCount: this.cardCount });
-        localStorage.setItem('decklist-list', JSON.stringify(decklistArray));
+        localStorage.setItem(`${this.type}-list`, JSON.stringify(decklistArray));
     }
 }
 export class Decklist extends Cardlist {
     constructor() {
-        super();
+        super('decklist');
         this.maxSize = Config.maxDeckSize;
         this.minSizeToUse = Config.minDeckSize;
         this.valid = false;
@@ -84,10 +85,10 @@ export class Decklist extends Cardlist {
     }
     checkTotalNameCount(card) {
         //Check if existing Radiant or ACE card
-        if (card.subtypes.includes('Radiant')) {
+        if (!!card.subtypes && card.subtypes.includes('Radiant')) {
             return this.cards.filter((c) => c.subtypes.includes('Radiant')).length; //Return 0 or 1
         }
-        else if (card.subtypes.includes('ACE SPEC')) {
+        else if (!!card.subtypes && card.subtypes.includes('ACE SPEC')) {
             return this.cards.filter((c) => c.subtypes.includes('ACE SPEC')).length; //Return 0 or 1
         }
         let similarNameCount = 0;
@@ -98,13 +99,18 @@ export class Decklist extends Cardlist {
         return similarNameCount;
     }
 }
-export class Collection extends Cardlist {
-}
 export class CopiedDecklist extends Decklist {
     constructor(decklist) {
         super();
         this.name = !!decklist.name ? decklist.name : "";
         this.cards = decklist.cards.map(card => new CardInDeck(card, this));
+        console.table(this.cards);
+        this.cards.sort((a, b) => Date.parse(a.releaseDate) - Date.parse(b.releaseDate));
+        console.log('sorted by date');
+        console.table(this.cards);
+        this.cards.sort((a, b) => this.sortPokémonByDexNumber(a, b));
+        console.log('sorted by dex number');
+        console.table(this.cards);
         this.cardCount = decklist.cardCount;
         this.pokémonCount = decklist.pokémonCount;
         this.trainerCount = decklist.trainerCount;
@@ -113,6 +119,37 @@ export class CopiedDecklist extends Decklist {
         this.minSizeToUse = decklist.minSizeToUse;
         this.valid = decklist.valid;
         this.active = decklist.active;
+    }
+    sortPokémonByDexNumber(a, b) {
+        console.log(`a: ${a.dexNumber}, b:${b.dexNumber}`);
+        if (a.supertype === "Pokémon") {
+            if (b.supertype === "Pokémon")
+                return a.dexNumber - b.dexNumber;
+        }
+        else
+            return -1;
+        if (a.supertype !== "Pokémon") {
+            return +1;
+        }
+    }
+}
+export class Collection extends Cardlist {
+    constructor() {
+        super('collection');
+        this.cards = [];
+    }
+}
+export class CopiedCollection extends Collection {
+    constructor(collection, decklist) {
+        super();
+        this.name = !!collection.name ? collection.name : "";
+        this.cards = collection.cards.map(card => new CardInCollection(card));
+        this.cards = this.cards.sort((a, b) => Date.parse(a.releaseDate) - Date.parse(b.releaseDate));
+        this.cardCount = collection.cardCount;
+        this.pokémonCount = collection.pokémonCount;
+        this.trainerCount = collection.trainerCount;
+        this.energyCount = collection.energyCount;
+        this.active = collection.active;
     }
 }
 export class Deck {

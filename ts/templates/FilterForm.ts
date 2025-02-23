@@ -2,6 +2,7 @@
 import { CardProperties } from "../CardProperties.js";
 import { Config } from "../Config.js";
 import { CardData, RawCardData } from "../models/Card.js";
+import { Collection } from "../models/Deck.js";
 
 export class FilterForm {
 	$wrapper: HTMLDivElement;
@@ -10,6 +11,7 @@ export class FilterForm {
 	$filterFieldsDiv: HTMLDivElement;
 	$submitBtn: HTMLButtonElement;
 	filters: string;
+	$collectionLoader?: HTMLElement;
 	private _cardProperties: CardProperties | null;
 	
     constructor() {
@@ -29,8 +31,6 @@ export class FilterForm {
 		this.$formWrapper.id = 'filter-form';
 		this.$filterFieldsDiv.appendChild(this.$formWrapper);
 
-		
-
 		this._filterFields = [];
 		this.filters = "";
 		this._cardProperties = null;
@@ -44,6 +44,32 @@ export class FilterForm {
 	get cardProperties(): CardProperties | null{
 		return this._cardProperties;
 	}
+	get filterFields(): FilterField[] {
+		return this._filterFields;
+	}
+
+	createCollectionLoader(collectionList: Collection[]) {
+		this.$collectionLoader = document.createElement('div');
+		this.$collectionLoader.id = "collection-loader";
+		this.$collectionLoader.innerHTML =	`
+		<label for="collection-list">Load a collection</label>
+		<button class="toggle-expand" type="button">Expand</button>
+		<div class="select-container">			
+			<select name="collection-list" id="collection-list" >		
+				<option value="none">none</option>
+			</select>
+			<button type="button" class="display-collection">Load</button>
+		</div>`;
+		const select: HTMLSelectElement = this.$collectionLoader!.querySelector('.select-container select')!;
+		collectionList.forEach((col) => {
+			select.innerHTML +=
+			`<option value="${col.name}">${col.name}</option>`;
+		})
+		this.$wrapper.prepend(this.$collectionLoader);
+
+		const expandBtn: HTMLButtonElement = this.$collectionLoader.querySelector('button.toggle-expand')!;
+		expandBtn.addEventListener('click', () => this.expandOrReduceField(expandBtn, select, collectionList.length));
+	}
 	createResetBtn() {
 		const $resetBtn: HTMLButtonElement = document.createElement('button');
 		$resetBtn.setAttribute("type", "button");
@@ -55,6 +81,8 @@ export class FilterForm {
 	
 	initializeFilterFields() {
 		this.createResetBtn();
+		
+		console.log('initializing');
 
 		const filterLegality = new FilterField('filter-legality', 'checkbox');
 		filterLegality.$formWrapper.innerHTML = `
@@ -95,13 +123,12 @@ export class FilterForm {
 
 		const filterRarities: FilterField = this.createSelectFilter('filter-rarity', 'Filter by rarity', this.cardProperties!.rarities);
 		this._filterFields.push(filterRarities);
-
 		this.renderAll();
 		this.createResetBtn();
 	}
 	
-	renderAll () {
-		this._filterFields.forEach((ff: FilterField) => {
+	renderAll () {		
+		this._filterFields.forEach((ff: FilterField) => {			
 			ff.render(this.$formWrapper);
 		})		
 	}
@@ -169,7 +196,7 @@ export class FilterForm {
 		${filter.id === "filter-convertedRetreatCost"?"":`<button class="toggle-expand" type="button">Expand</button>`}
 		<div class="select-container">			
 			<select name="${filter.id}" id="${filter.id}"${multiple?` ${multiple}`:""}>		
-			<option value=""></option>
+				<option value=""></option>
 			</select>
 		</div>`;
 		options.forEach((op: string) => {
@@ -177,9 +204,9 @@ export class FilterForm {
 		})
 		
 		if (filter.id !== "filter-convertedRetreatCost") {
-			const expandBtn: HTMLButtonElement = filter.$formWrapper.querySelector('button')!;
+			const expandBtn: HTMLButtonElement = filter.$formWrapper.querySelector('button.toggle-expand')!;
 			const that: FilterForm = this;
-			expandBtn.addEventListener('click', () => that.expandOrReduceField(expandBtn, filter, options));
+			expandBtn.addEventListener('click', () => that.expandOrReduceField(expandBtn, filter.field as HTMLSelectElement, options.length));
 		}			
 		return filter;
 	}
@@ -198,13 +225,13 @@ export class FilterForm {
 		})
 		return filter;
 	}
-	expandOrReduceField(btn: HTMLButtonElement, filter: FilterField, options: string[]) {
+	expandOrReduceField(btn: HTMLButtonElement, field: HTMLSelectElement, length: number) {
 		btn.classList.toggle('expand');
 		if (btn.classList.contains('expand')) {
-			filter.field.setAttribute("size", `${options.length+1}`);
+			field.setAttribute("size", `${length+1}`);
 			btn.innerText = "reduce";
 		} else {
-			filter.field.setAttribute("size", '1');
+			field.setAttribute("size", '1');
 			btn.innerText = "expand";
 		}
 	}
@@ -244,7 +271,7 @@ export class FilterForm {
 		}
 	}
 	getFilters() {
-		this.filters = "";
+		this.filters = '';
 		this._filterFields.forEach((ff: FilterField) => {
 			if (ff.field instanceof HTMLFieldSetElement) {				
 				const checkedInputs: NodeListOf<HTMLInputElement> = ff.field.querySelectorAll('div input:checked')!;
@@ -272,11 +299,42 @@ export class FilterForm {
 						//ex: " (subtype:"EX" OR subtype:"VSTAR")"			
 					}
 				}
-			}			
+			}
 		})
 		console.log(this.filters);
 		
 		return this.filters;
+	}
+	getCollectionFilters() {
+		this._filterFields.forEach((ff: FilterField) => {
+			if (ff.field instanceof HTMLFieldSetElement) {				
+				const checkedInputs: NodeListOf<HTMLInputElement> = ff.field.querySelectorAll('div input:checked')!;
+				console.log(checkedInputs);
+				if (checkedInputs.length < 1) return;
+				this.filters += this.multipleQueries(ff, checkedInputs);
+			}
+			else if (ff.type === "checkbox") {
+				const input: HTMLElement | null = ff.$formWrapper.querySelector(`input:checked`);
+				if (!!input) {
+					this.filters += ` ${this.convertToQuery(ff.id, input.id)}`
+				}
+			}
+			else {
+				if (!!ff.field.value) {
+					if (ff.field.multiple === false) {					
+						this.filters += ` ${this.convertToQuery(ff.id, ff.field.value)}`;
+						//ex: ff.id = filter-name, ff.field.value = "Pikachu" => name:"Pikachu"
+					}
+					else {
+						const checkedOptions: NodeListOf<HTMLOptionElement> = ff.field.querySelectorAll('div option:checked')!;
+						console.log(checkedOptions);
+						if (checkedOptions.length < 1) return;
+						this.filters += this.multipleQueries(ff, checkedOptions);
+						//ex: " (subtype:"EX" OR subtype:"VSTAR")"			
+					}
+				}
+			}
+		})
 	}
 	/* subtypes: string[];
 	hp: number;
@@ -293,7 +351,7 @@ export class FilterForm {
 	avgPrice: number; */
 }
 
-class FilterField {
+export class FilterField {
     id: string;
     $formWrapper: HTMLDivElement;
 	type: string;

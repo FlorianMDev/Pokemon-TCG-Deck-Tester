@@ -23,26 +23,36 @@ export class CardData {
             this.setName = data.setName;
             this.legality = data.legality;
             this.avgPrice = data.avgPrice;
+            this.dexNumber = data.dexNumber;
             this.count = data.count;
+            this.releaseDate = data.releaseDate;
         }
         else {
             this.setName = `${data.set.id} - ${data.set.name}`;
             this.legality = data.legalities.standard ? data.legalities.standard : undefined;
             this.avgPrice = data.cardmarket ? data.cardmarket.prices.averageSellPrice : undefined;
             this.count = 1;
+            this.releaseDate = data.set.releaseDate;
+            if (this.supertype === "Pokémon")
+                this.dexNumber = data.nationalPokedexNumbers[0];
         }
         this.rarity = data.rarity;
         this.images = data.images;
     }
     static maxDeckCount(card /* , decklist:Decklist */) {
-        if (card.supertype === "Energy" && (!card.subtypes || (!!card.subtypes && card.subtypes.includes("Basic")))) {
+        if (card.supertype === "Energy" && ((!!card.subtypes && card.subtypes.includes("Basic")) || !card.subtypes)) {
+            if (card instanceof CardInCollection && card.count < 60)
+                return card.count;
             return 60;
         }
         else if (!!card.subtypes && (card.subtypes.includes("ACE SPEC") || card.subtypes.includes("Radiant"))) {
             return 1;
         }
-        else
+        else {
+            if (card instanceof CardInCollection && card.count < 4)
+                return card.count;
             return Config.maxCardDeckCount;
+        }
     }
 }
 export class CardInCollection extends CardData {
@@ -63,7 +73,10 @@ export class CardInCollection extends CardData {
 export class CardInDeck extends CardData {
     constructor(data, decklist) {
         super(data, decklist);
-        //this.count = 1;
+        if (data instanceof CardInDeck)
+            this.maxCount = data.maxCount;
+        else
+            this.maxCount = CardData.maxDeckCount(this);
     }
 }
 export class Card {

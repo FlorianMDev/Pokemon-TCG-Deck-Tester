@@ -1,20 +1,20 @@
-import {CardData, CardInDeck, RawCardData} from "./models/Card.js";
+import {CardData, CardInCollection, CardInDeck, RawCardData} from "./models/Card.js";
 import {Api} from "./api/Api.js";
 import {Config} from "./Config.js";
 import {Game, FreeGame, SemiRuledGame} from "./Game.js";
-import {Cardlist, Collection, CopiedDecklist, Deck, Decklist} from "./models/Deck.js";
+import {Cardlist, Collection, CopiedCollection, CopiedDecklist, Deck, Decklist} from "./models/Deck.js";
 import {CardTemplate} from "./templates/CardTemplate.js";
 import { PageManager } from "./templates/PageManager.js";
-import { FilterForm } from "./templates/FilterForm.js";
+import { FilterField, FilterForm } from "./templates/FilterForm.js";
 import { CardProperties } from "./CardProperties.js";
 import { cardWithModal } from "./decorators/CardWithModal.js";
-import { CardModal } from "./templates/CardModal.js";
 import { StateManager } from "./templates/StateManager.js";
 import { Modal } from "./templates/Modal.js";
 import { CardWithDecklistBtn } from "./decorators/CardWithDecklistBtn.js";
-import { CardListManager, DecklistManager } from "./templates/DecklistManager.js";
+import { DecklistManager } from "./templates/DecklistManager.js";
 import { DeckBuilderManager } from "./templates/DeckBuilderManager.js";
 import { CollectionManager } from "./templates/CollectionManager.js";
+import { CollectionMenu } from "./templates/CollectionMenu.js";
 
 export class App {
 	api: Api;
@@ -24,15 +24,21 @@ export class App {
 	state: string;
 	stateManager: StateManager;
 	page: number;	
-	apiTotalPages?: number;
+	totalPages?: number;
 	pageManagers: PageManager[];
 	filters?: string;	
 	filterForm?: FilterForm;
+	
 	deckBuilder?: DeckBuilderManager;
+	collectionMenu?: CollectionMenu;
+
 	cardProperties?: CardProperties;
 	$cardTemplatesWrapper: HTMLDivElement;
 
 	private _activeList?: Decklist | Collection;
+	collectionCardList?: CardData[];
+
+	cardListIsCollection: boolean;
 
 	constructor() {		
 		this.api = new Api(`${Config.ApiURI}`);
@@ -44,6 +50,7 @@ export class App {
 		this.pageManagers = [];
 		this.$cardTemplatesWrapper = document.querySelector('section.cards-data')!;
 		this.stateManager = new StateManager(this.state);
+		this.cardListIsCollection = false;
 	}
 	get activeList(): Decklist | Collection {
 		return this._activeList!;
@@ -68,10 +75,15 @@ export class App {
 		}
 	}
 	createNewCardListMenu(type:string) {
+		if (this.cardListIsCollection) this.cardListIsCollection = false;
+		
 		const list: string = type === 'decklist'? 'deck': type === 'collection' ? 'collection': '';
 		let modal = null;
-		if (type === 'decklist') modal = new DecklistManager();
-		else modal = new CollectionManager();
+		if (type === 'decklist') {
+			modal = new DecklistManager();
+			if (!!this.collectionMenu) this.collectionMenu.$wrapper.innerHTML='';
+		}
+		else /* if(type === 'collection') */ modal = new CollectionManager();
 		modal.render();
 		modal.$modalWrapper.querySelector(`button#new-${list}-btn`)!.addEventListener('click', async () => {
 			if (type === 'decklist') await this.newDeck();
@@ -89,7 +101,7 @@ export class App {
 					await this.loadDeck(deck);
 				} else if (type === 'collection') {
 					const storedDeck = JSON.parse(deckJSON) as Collection;
-					let collection: Collection = storedDeck;
+					let collection: CopiedCollection = new CopiedCollection(storedDeck);
 					await this.loadCollection(collection);
 				}
 			})
@@ -98,29 +110,59 @@ export class App {
 	updateStateManager() {
 		this.stateManager!.updateStateTo(this.state);
 		this.loadStateManager();
+		
+		this.loadFilters();
 	}
 	async cardListMode() {
+		if (this.cardListIsCollection) this.cardListIsCollection = false;
 		if (this.state === 'deck-builder') {
 			this.deckBuilder!.$wrapper.innerHTML='';
 			this.deckBuilder!.$wrapper.classList.remove('visible');
 		}
+		if (this.state === 'collection-manager') {
+			this.collectionMenu!.$wrapper.innerHTML='';
+		}
 		this.state = 'card-list';
 		this.updateStateManager();
-		await this.updatePage();
+		await this.updateCardList();
 	}
 
 	async newCollection() {
 		this.state = 'collection-manager';
 		this.updateStateManager();
-		this._activeList = new Collection();
-		await this.updatePage();
+		this.activeList = new Collection();
+		await this.updateCardList();
+		this.loadCollectionMenu(this.activeList as Collection);
 	}
 	async loadCollection(collection: Collection) {
 		this.state = 'collection-manager';
 		this.updateStateManager();
 		this.activeList = collection;
 		console.log(collection);
-		await this.updatePage();
+		await this.updateCardList();
+		this.loadCollectionMenu(collection);
+	}
+	loadCollectionMenu(collection:Collection) {
+		this.collectionMenu = new CollectionMenu(collection);
+		this.collectionMenu.render();
+		this.addDisplayCollectionBtnListener();
+	}
+	addDisplayCollectionBtnListener() {
+		const $displayToggle: HTMLButtonElement = this.collectionMenu!.$wrapper!.querySelector('button.display-collection')!;
+		$displayToggle.addEventListener('click', async (e: Event) => {
+			$displayToggle.classList.toggle('displayed');
+			if ($displayToggle.classList.contains('displayed')) {
+				$displayToggle.textContent = 'Display all cards';
+				this.cardListIsCollection = true;
+				console.log(this.activeList.cards);
+				
+				await this.updateCardList();
+			} else /* if (!$displayToggle.classList.contains('displayed')) */ {
+				$displayToggle.textContent = 'Display collection';
+				this.cardListIsCollection = false;
+				await this.searchWithFilters();
+			}
+		})
 	}
 
 	async newDeck() {
@@ -142,11 +184,12 @@ export class App {
 			this.addDeckCountListeners(card, cardInDeckTemplate);
 		})
 	}
+	
 	async loadDeckBuilder(deck: Decklist) {
 		this.deckBuilder = new DeckBuilderManager(deck);
 		this.deckBuilder.render();
-		console.log('deck loaded');					
-		await this.updatePage();
+		console.log('deck loaded');
+		await this.updateCardList();
 	}
 
 	loadPageManagers() {
@@ -155,28 +198,28 @@ export class App {
 	addPageManagerListeners() {
 		this.pageManagers.forEach((pm: PageManager) => {
 			let that:App = this;
-			pm.$firstPageBtn.addEventListener('click', async function() {				
+			pm.$firstPageBtn.addEventListener('click', async function() {
 				if (that.page > 1) {
 					that.page = 1;
-					await that.updatePage();
+					await that.updateCardList();
 				}
 			})
-			pm.$previousPageBtn.addEventListener('click', async function() {				
+			pm.$previousPageBtn.addEventListener('click', async function() {
 				if (that.page > 1) {
 					that.page--;
-					await that.updatePage();
+					await that.updateCardList();
 				}
 			})
 			pm.$nextPageBtn.addEventListener('click', async function() {
-				if (that.page < that.apiTotalPages! ) {
+				if (that.page < that.totalPages! ) {
 					that.page++;
-					await that.updatePage();
+					await that.updateCardList();
 				}
 			})
 			pm.$lastPageBtn.addEventListener('click', async function() {
-				if (that.page < that.apiTotalPages! ) {
-					that.page = that.apiTotalPages!;
-					await that.updatePage();
+				if (that.page < that.totalPages! ) {
+					that.page = that.totalPages!;
+					await that.updateCardList();
 				}
 			})
 
@@ -184,48 +227,135 @@ export class App {
 				event.preventDefault();
 				const value: number = Number(pm.$pageSelectorInput.value);
 				if (value < 1) that.page = 1;
-				else if (value > that.apiTotalPages!) that.page = that.apiTotalPages!;
-				else that.page = value;			
-				await that.updatePage();				
+				else if (value > that.totalPages!) that.page = that.totalPages!;
+				else that.page = value;
+				await that.updateCardList();
 			})
 		})
 	}
 
 	loadFilters() {
+		this.filters = '';
+		if (!!this.filterForm) this.filterForm.$wrapper.innerHTML = '';
 		this.filterForm = new FilterForm();
+		
+		this.filterForm!.cardProperties = this.cardProperties!;
+		
+		this.filterForm!.initializeFilterFields();
 		document.querySelectorAll('button.submit-filters')!.forEach( (btn: Element) => {
 			btn.addEventListener('click', (event: Event) => {				
 				this.searchWithFilters();
 			})
 		})
+
+		if (this.state === 'deck-builder') {
+			const collectionListJSON: string | null = localStorage.getItem(`collection-list`);
+			if (!!collectionListJSON) {
+				this.filterForm.createCollectionLoader(JSON.parse(collectionListJSON));
+				this.filterForm.$collectionLoader!.querySelector('button.display-collection')!
+				.addEventListener('click', async () => {
+					const select: HTMLSelectElement = this.filterForm!.$collectionLoader!.querySelector('.select-container select')!;
+					if (select.value !== "none") {
+						this.cardListIsCollection = true;
+						await this.updateCardList();
+					} else {
+						this.cardListIsCollection = false;
+						await this.searchWithFilters();
+					}
+				})
+			}
+		}
+		
     }
-	searchWithFilters() {
-		this.filters = this.filterForm!.getFilters();
+	async searchWithFilters() {
+		if (this.cardListIsCollection === false) {
+			this.filters = this.filterForm!.getFilters();
+		}
 		this.page = 1;
-		this.updatePage();	
+		await this.updateCardList();
+		/* if (!!this.filterForm?.$collectionLoader) {
+			this.filterForm.getCollectionFilters();			
+		} */
 	}
+	/* searchCollectionWithFilters() {
+		this.filterForm!.filterFields.forEach((ff: FilterField) => {
+			if (ff.field instanceof HTMLFieldSetElement) {				
+				const checkedInputs: NodeListOf<HTMLInputElement> = ff.field.querySelectorAll('div input:checked')!;
+				console.log(checkedInputs);
+				if (checkedInputs.length < 1) return;
+				//Change here
+				this.filters += this.multipleQueries(ff, checkedInputs);
+			}
+			else if (ff.type === "checkbox") {
+				const input: HTMLElement | null = ff.$formWrapper.querySelector(`input:checked`);
+				if (!!input) {
+					//Change here
+					this.filters += ` ${this.convertToQuery(ff.id, input.id)}`
+				}
+			}
+			else {
+				if (!!ff.field.value) {
+					if (ff.field.multiple === false) {	
+						//Change here				
+						this.filters += ` ${this.convertToQuery(ff.id, ff.field.value)}`;
+						//ex: ff.id = filter-name, ff.field.value = "Pikachu" => name:"Pikachu"
+					}
+					else {
+						const checkedOptions: NodeListOf<HTMLOptionElement> = ff.field.querySelectorAll('div option:checked')!;
+						console.log(checkedOptions);
+						if (checkedOptions.length < 1) return;
+						//Change here
+						this.filters += this.multipleQueries(ff, checkedOptions);
+						//ex: " (subtype:"EX" OR subtype:"VSTAR")"			
+					}
+				}
+			}
+		})
+	} */
 
 	async fetchCards(page: number, filters?: string) {
 		return await this.api.getCards(Config.displayedPerPage, page, filters?? "");
 		/* for (let i in cardsData) {
-			this.cardList.push(new CardData(cardsData[i], +i + 1));			
+			this.cardList.push(new CardData(cardsData[i], +i + 1));
 		} */
-	}	
-	async loadCardData(filters?: string){
-		const apiData = await this.fetchCards(this.page, this.filters?? "");
-		this.cardList = apiData.data;
+	}
+	async loadCardData(filters?: string) {
+		let count: number = 0;
+		let totalCount: number = 0;
+		if (this.cardListIsCollection === false) {
+			const apiData = await this.fetchCards(this.page, this.filters?? "");
+			this.cardList = apiData.data;
+			this.totalPages = Math.ceil(apiData.totalCount / Config.displayedPerPage);
+			
+			count = apiData.count;
+			totalCount = apiData.totalCount;
+		}
+		else /* if (this.cardListIsCollection) */ {
+			if (this.activeList instanceof Collection) {
+				this.collectionCardList = this.activeList.cards;
+			} else {
+				const select: HTMLSelectElement = this.filterForm!.$collectionLoader!.querySelector('.select-container select')!;
+				const collectionJSON: string = localStorage.getItem(`collection: ${select.value}`)!;
+				const collection = JSON.parse(collectionJSON) as Collection;
+				this.collectionCardList = collection.cards.map((card) => new CardInCollection(card));
+			}
+			//if(!!filters){this.filterCollectionCardList(this.collectionCardList);}
+			this.cardList = this.collectionCardList;//Change later to include the amount displayed on 1 page
 
-		this.apiTotalPages = Math.ceil(apiData.totalCount / Config.displayedPerPage);
-
+			this.totalPages = Math.ceil(this.cardList.length / Config.displayedPerPage);
+			this.page = 1;//Change later			
+			count = this.cardList.length < Config.displayedPerPage ? this.cardList.length: Config.displayedPerPage;
+			totalCount = this.collectionCardList!.length;
+		}
 		this.pageManagers[0].$pageCounter.innerHTML =
-		`Page: ${this.page}/${this.apiTotalPages} (displaying ${apiData.count} cards out of ${apiData.totalCount})`;
+		`Page: ${this.page}/${this.totalPages > 1 ?this.totalPages: 1} (displaying ${count} cards out of ${totalCount})`;
 		this.pageManagers[1].$pageCounter.innerHTML =
-		`Page: ${this.page}/${this.apiTotalPages} (displaying ${apiData.count} cards out of ${apiData.totalCount})`;
+		`Page: ${this.page}/${this.totalPages > 1 ?this.totalPages: 1} (displaying ${count} cards out of ${totalCount})`;
 		console.log(this.cardList);
 	}
 	
 	async loadCardListPage() {
-		await this.updatePage();
+		await this.updateCardList();
 		const properties: string | null = localStorage.getItem("card-properties");
 		if (!!properties) {
 			this.cardProperties = JSON.parse(properties) as CardProperties;
@@ -233,9 +363,7 @@ export class App {
 			this.cardProperties = new CardProperties(this.api);
 			await this.cardProperties.loadProperties();
 		}
-		this.loadFilters();	
-		this.filterForm!.cardProperties = this.cardProperties;
-		this.filterForm!.initializeFilterFields();		
+		this.loadFilters();
 		this.addPageManagerListeners();
 	}
 	createCardTemplate (card: RawCardData | CardData | CardInDeck, $wrapper: HTMLElement): CardTemplate {
@@ -258,7 +386,7 @@ export class App {
 				}
 			}
 			
-			let	existingCard: CardInDeck = this.activeList.cards.find(c => c.id === card.id)!;
+			let	existingCard: CardData = this.activeList.cards.find(c => c.id === card.id)!;
 			if(!existingCard) {
 				$deckCounter.textContent = `1`;
 				if (this.state === 'deck-builder') {
@@ -269,8 +397,10 @@ export class App {
 					cardInDeckTemplate = CardWithDecklistBtn(cardInDeckTemplate, this.activeList as Decklist);
 					this.addDeckCountListeners(newCardInDeck, cardInDeckTemplate);
 				} else if (this.state === 'collection-manager') {
-					let newCardInCollection = new CardData(card, this.activeList as Collection);
-					this.activeList.addCardToList(newCardInCollection);
+					let newCard = new CardData(card, this.activeList as Collection);
+					console.log(this.activeList);
+					
+					this.activeList.addCardToList(newCard);
 				}
 			} else {
 				this.activeList.addCardToList(existingCard);
@@ -279,7 +409,7 @@ export class App {
 					console.log('listener in deck');
 					const $cardListData = $cardListCardsData.querySelector(`.card-template.${card.id}`);
 					if (!!$cardListData) {
-						console.log('card in list');						
+						console.log('card in list');
 						$cardListData.querySelector('.deck-counter')!.textContent = `${card.count}`;
 					}
 				} else if (this.state === 'deck-builder') {
@@ -288,39 +418,43 @@ export class App {
 				}
 			}
 			if (this.state === 'deck-builder')this.deckBuilder!.addCardToCount(card);
+			if (this.state === 'collection-manager')this.collectionMenu!.addCardToCount(card as CardInCollection);
 		})
 		const RemoveFromDecklistBtn: HTMLButtonElement = cardTemplate.$wrapper.querySelector('button.minus-1')!;
 		RemoveFromDecklistBtn.addEventListener('click', () => {
-			let cardInDeck: CardInDeck | void = undefined;
+			let cardInList: CardData | void = undefined;
 			if (card instanceof CardInDeck) {
 				console.log('listener in deck');
-				cardInDeck = card;
+				cardInList = card;
 				const $cardListData = $cardListCardsData.querySelector(`.card-template.${card.id}`);
-				if (cardInDeck.count === 1) {
+				if (cardInList.count === 1) {
 					cardTemplate.$wrapper.remove();
 				}
-				this.activeList.removeCardFromList(cardInDeck!);
+				this.activeList.removeCardFromList(cardInList);
 				console.log($cardListData);
 				
 				if (!!$cardListData)
 					$cardListData.querySelector('.deck-counter')!.textContent = `${card.count}`;
 			} else {
-				cardInDeck = this.activeList.cards.find(c => c.id === card.id);
-				if(!cardInDeck) return;
+				cardInList = this.activeList.cards.find(c => c.id === card.id);
+				if(!cardInList) return;				
 				
-				this.activeList.removeCardFromList(cardInDeck!);
+				this.activeList.removeCardFromList(cardInList);
 				if (this.state === 'deck-builder') {
 					const $deckBuilderData: HTMLElement = $deckBuilderCardsData!.querySelector(`.card-template.${card.id}`)!;
-					if (cardInDeck.count === 0) {
+					if (cardInList.count === 0) {
 						$deckBuilderData.remove();
 					}
-					$deckBuilderData.querySelector('span.deck-counter')!.textContent = `${cardInDeck.count}`;
+					$deckBuilderData.querySelector('span.deck-counter')!.textContent = `${cardInList.count}`;
+				}
+				if (this.state === 'collection-manager') {
+					this.collectionMenu!.removeCardFromCount(card as CardInCollection);
 				}
 			}
-			console.log(cardInDeck);
+			console.log(cardInList);
 			if (this.state === 'deck-builder')this.deckBuilder!.removeCardFromCount(card);
 			if (!cardTemplate.$wrapper) return;
-			$deckCounter.textContent = `${cardInDeck.count}`;
+			$deckCounter.textContent = `${cardInList.count}`;
 		})
 	}
 	displayCards() {
@@ -337,12 +471,11 @@ export class App {
 		})
 	}
 
-
-	async updatePage() {
+	async updateCardList() {
 		await this.loadCardData(this.filters?? "");
 		this.displayCards();
 		this.pageManagers.forEach((pm: PageManager) => {			
-			pm.$pageSelectorInput.max = `${this.apiTotalPages!}`;
+			pm.$pageSelectorInput.max = `${this.totalPages!}`;
 			pm.$pageSelectorInput.value = `${this.page}`;
 		})
 	}
@@ -360,8 +493,6 @@ export class App {
 		this.loadStateManager();
 		this.loadPageManagers();
 		await this.loadCardListPage();
-		
-
 		//Add condition later
 		//this.startGame();
 	}

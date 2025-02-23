@@ -25,6 +25,30 @@ export class FilterForm {
     get cardProperties() {
         return this._cardProperties;
     }
+    get filterFields() {
+        return this._filterFields;
+    }
+    createCollectionLoader(collectionList) {
+        this.$collectionLoader = document.createElement('div');
+        this.$collectionLoader.id = "collection-loader";
+        this.$collectionLoader.innerHTML = `
+		<label for="collection-list">Load a collection</label>
+		<button class="toggle-expand" type="button">Expand</button>
+		<div class="select-container">			
+			<select name="collection-list" id="collection-list" >		
+				<option value="none">none</option>
+			</select>
+			<button type="button" class="display-collection">Load</button>
+		</div>`;
+        const select = this.$collectionLoader.querySelector('.select-container select');
+        collectionList.forEach((col) => {
+            select.innerHTML +=
+                `<option value="${col.name}">${col.name}</option>`;
+        });
+        this.$wrapper.prepend(this.$collectionLoader);
+        const expandBtn = this.$collectionLoader.querySelector('button.toggle-expand');
+        expandBtn.addEventListener('click', () => this.expandOrReduceField(expandBtn, select, collectionList.length));
+    }
     createResetBtn() {
         const $resetBtn = document.createElement('button');
         $resetBtn.setAttribute("type", "button");
@@ -35,6 +59,7 @@ export class FilterForm {
     }
     initializeFilterFields() {
         this.createResetBtn();
+        console.log('initializing');
         const filterLegality = new FilterField('filter-legality', 'checkbox');
         filterLegality.$formWrapper.innerHTML = `
 			<label for="Legal">Legal in standard format</label>
@@ -128,16 +153,16 @@ export class FilterForm {
 		${filter.id === "filter-convertedRetreatCost" ? "" : `<button class="toggle-expand" type="button">Expand</button>`}
 		<div class="select-container">			
 			<select name="${filter.id}" id="${filter.id}"${multiple ? ` ${multiple}` : ""}>		
-			<option value=""></option>
+				<option value=""></option>
 			</select>
 		</div>`;
         options.forEach((op) => {
             filter.field.innerHTML += `<option value="${op.toLowerCase().replace(/\s+/g, '-')}">${op}</option>`;
         });
         if (filter.id !== "filter-convertedRetreatCost") {
-            const expandBtn = filter.$formWrapper.querySelector('button');
+            const expandBtn = filter.$formWrapper.querySelector('button.toggle-expand');
             const that = this;
-            expandBtn.addEventListener('click', () => that.expandOrReduceField(expandBtn, filter, options));
+            expandBtn.addEventListener('click', () => that.expandOrReduceField(expandBtn, filter.field, options.length));
         }
         return filter;
     }
@@ -156,14 +181,14 @@ export class FilterForm {
         });
         return filter;
     }
-    expandOrReduceField(btn, filter, options) {
+    expandOrReduceField(btn, field, length) {
         btn.classList.toggle('expand');
         if (btn.classList.contains('expand')) {
-            filter.field.setAttribute("size", `${options.length + 1}`);
+            field.setAttribute("size", `${length + 1}`);
             btn.innerText = "reduce";
         }
         else {
-            filter.field.setAttribute("size", '1');
+            field.setAttribute("size", '1');
             btn.innerText = "expand";
         }
     }
@@ -207,7 +232,7 @@ export class FilterForm {
         }
     }
     getFilters() {
-        this.filters = "";
+        this.filters = '';
         this._filterFields.forEach((ff) => {
             if (ff.field instanceof HTMLFieldSetElement) {
                 const checkedInputs = ff.field.querySelectorAll('div input:checked');
@@ -242,8 +267,41 @@ export class FilterForm {
         console.log(this.filters);
         return this.filters;
     }
+    getCollectionFilters() {
+        this._filterFields.forEach((ff) => {
+            if (ff.field instanceof HTMLFieldSetElement) {
+                const checkedInputs = ff.field.querySelectorAll('div input:checked');
+                console.log(checkedInputs);
+                if (checkedInputs.length < 1)
+                    return;
+                this.filters += this.multipleQueries(ff, checkedInputs);
+            }
+            else if (ff.type === "checkbox") {
+                const input = ff.$formWrapper.querySelector(`input:checked`);
+                if (!!input) {
+                    this.filters += ` ${this.convertToQuery(ff.id, input.id)}`;
+                }
+            }
+            else {
+                if (!!ff.field.value) {
+                    if (ff.field.multiple === false) {
+                        this.filters += ` ${this.convertToQuery(ff.id, ff.field.value)}`;
+                        //ex: ff.id = filter-name, ff.field.value = "Pikachu" => name:"Pikachu"
+                    }
+                    else {
+                        const checkedOptions = ff.field.querySelectorAll('div option:checked');
+                        console.log(checkedOptions);
+                        if (checkedOptions.length < 1)
+                            return;
+                        this.filters += this.multipleQueries(ff, checkedOptions);
+                        //ex: " (subtype:"EX" OR subtype:"VSTAR")"			
+                    }
+                }
+            }
+        });
+    }
 }
-class FilterField {
+export class FilterField {
     //private _field: HTMLInputElement | HTMLSelectElement;
     constructor(id, type) {
         this.id = id;

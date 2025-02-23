@@ -1,24 +1,20 @@
 import { CardTemplate } from "../templates/CardTemplate.js";
-import { Card, CardData, CardInDeck, RawCardData } from "../models/Card.js";
-import { Collection, Decklist } from "../models/Deck.js";
+import { Card, CardData, CardInCollection, CardInDeck, RawCardData } from "../models/Card.js";
+import { Cardlist, Collection, Decklist } from "../models/Deck.js";
 import { Config } from "../Config.js";
 import { DeckBuilderManager } from "../templates/DeckBuilderManager.js";
 import { cardWithModal } from "./CardWithModal.js";
 
 export function CardWithDecklistBtn (cardTemplate: CardTemplate, cardlist:Decklist | Collection){
+	const card: CardData | RawCardData = cardTemplate.cardData;
 	const $cardName: HTMLDivElement = cardTemplate.$wrapper.querySelector('div.card-name')!;
 	const $deckCountDiv: HTMLDivElement = document.createElement('div');
 	$deckCountDiv.classList.add('deck-count');
 	$cardName.appendChild($deckCountDiv);
 
-
-	let deckCount:number = 0;
-	if (cardlist.cards.length > 0) {
-		const cardInDeck = cardlist.cards.find( (card: CardInDeck) => card.id === cardTemplate.cardData.id);//Check if card in decklist
-		if (!!cardInDeck) {
-			deckCount = cardInDeck.count;
-		}
-	}
+	
+	let deckCount:number = getDeckCount(card, cardlist);
+	
 	const RemoveFromDecklistBtn: HTMLButtonElement = document.createElement('button');
 	RemoveFromDecklistBtn.type = "button";
 	RemoveFromDecklistBtn.classList.add("minus-1");
@@ -33,11 +29,13 @@ export function CardWithDecklistBtn (cardTemplate: CardTemplate, cardlist:Deckli
 	if (cardlist instanceof Decklist) {
 		const $slash: HTMLSpanElement = document.createElement('span');
 		$slash.textContent = '/';
-		$deckCountDiv.appendChild($slash);
+		$deckCountDiv.appendChild($slash);		
 
 		const $maxCount: HTMLSpanElement = document.createElement('span');
 		$deckCountDiv.appendChild($maxCount);
-		$maxCount.textContent = `${CardData.maxDeckCount(cardTemplate.cardData)}`;
+		if (card instanceof CardInDeck) {
+			$maxCount.textContent = `${card.maxCount}`;
+		} else $maxCount.textContent = `${CardData.maxDeckCount(card)}`;
 	}
 	
 	const AddToDecklistBtn: HTMLButtonElement = document.createElement('button');
@@ -48,8 +46,8 @@ export function CardWithDecklistBtn (cardTemplate: CardTemplate, cardlist:Deckli
 	
 	/* AddToDecklistBtn.addEventListener('click', () => {
 		const $deckCounter: HTMLElement = cardTemplate.$wrapper.querySelector("span.deck-counter")!;	
-		if (parseInt($deckCounter.textContent!) < CardData.maxDeckCount(cardTemplate.cardData)) {
-			let newCardInDeck = new CardInDeck(cardTemplate.cardData, decklist);
+		if (parseInt($deckCounter.textContent!) < CardData.maxDeckCount(card)) {
+			let newCardInDeck = new CardInDeck(card, decklist);
 			decklist.addCardToList(newCardInDeck);
 			$deckCounter.textContent = `${newCardInDeck.deckCount}`;
 		}
@@ -58,6 +56,20 @@ export function CardWithDecklistBtn (cardTemplate: CardTemplate, cardlist:Deckli
 
     return cardTemplate;
 }
-function updateDeckCount(cardTemplate: CardTemplate) {
-	const $deckCounter: HTMLElement = cardTemplate.$wrapper.querySelector("span.deck-counter")!;	
+
+function getDeckCount(card: CardData | RawCardData, cardlist: Cardlist): number {
+	let deckCount:number = 0;
+	if (card instanceof CardInDeck) {
+		deckCount = card.count;
+	} else if (cardlist.cards.length > 0) {
+		if (card instanceof CardInCollection && !!card.deckCount) {
+			deckCount = card.deckCount;
+			return deckCount;
+		}
+		const cardInDeck = cardlist.cards.find( (c: CardData) => c.id === card.id);//Check if card in decklist
+		if (!!cardInDeck) {
+			deckCount = cardInDeck.count;
+		}
+	}
+	return deckCount;
 }

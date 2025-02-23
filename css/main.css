@@ -78,6 +78,11 @@ div.state-manager {
 div#filter-div div.select-container {
 	position: relative;
 }
+div#filter-div div#collection-loader {
+	padding-bottom: 1rem;
+	margin-bottom: 1rem;
+	border-bottom: dashed black 1px;
+}
 
 div#filter-div {
 	justify-content: center;
@@ -309,7 +314,7 @@ div#deck-builder.visible i.fa-pen-to-square{
 	margin: 0 2%;
 }
 
-/* DECK & COLLECTION MENU*/
+/* DECK & COLLECTION LIST*/
 
 :is(#decklist-manager, #collection-manager).modal-on {
 	position: fixed;
@@ -354,6 +359,28 @@ div#deck-builder.visible i.fa-pen-to-square{
 }
 :is(div.decklist-container, div.collection-container) .decklist > p.decklist-name{
 	overflow: hidden;
+}
+
+/* COLLECTION MENU*/
+div#collection-menu {
+	display: flex;
+	flex-wrap: nowrap;
+	vertical-align: center;
+	text-align: center;
+}
+div#collection-menu h2 {
+	margin: auto 0;
+}
+div#collection-menu button {
+	padding: auto;
+}
+div#collection-menu #collection-cards-count{
+	display: flex;
+	flex-grow: 3;
+}
+div#collection-menu #collection-cards-count > p{
+	width: 25%;
+	border: solid 1px black ;
 }
 
 
