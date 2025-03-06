@@ -19,7 +19,10 @@ body {
 
 
 /* PAGE MANAGER */
-
+div.page-manager {
+	display: flex;
+	justify-content: center;
+}
 div.page-manager#p-m-up {
 	border-bottom: 2px black solid;
 	padding: 1rem 0;
@@ -28,26 +31,25 @@ div.page-manager#p-m-bottom {
 	border-top: 2px black solid;
 	padding-top: 1rem;
 }
+div.page-manager > div {
+	display: block;
+}
 
 div.page-manager button:hover{
 	background-color: #b3b3b3;
 }
-div.page-manager > button {
-	padding: 0.5rem 0.5rem 0.5rem 1rem;
-	font-size: 1rem;
-	font-family: 'Open Sans', sans-serif;
+div.page-manager > div > button {
+	background: linear-gradient(rgb(250, 196, 196) 0 50%, white 50% 100%);
 }
 div.page-manager button.first-page {
 	padding: 0.5rem 0.5rem 0.5rem 1rem;
 	border-radius:  2rem 0 0 2rem;
 }
 div.page-manager button.previous-page {
-	width: 11%;
 	padding: 0.5rem 0;
 	border-radius: 0;
 }
-div.page-manager button.next-page {	
-	width: 11%;
+div.page-manager button.next-page {
 	padding: 0.5rem 0;
 	border-radius: 0;
 }
@@ -55,11 +57,12 @@ div.page-manager button.last-page {
 	padding: 0.5rem 1rem 0.5rem 0.5rem;
 	border-radius: 0 2rem 2rem 0;
 }
-
+div.page-manager > div.pm-div-2 {
+	padding: 0.5rem 0;
+}
 div.page-manager span.page-count {
 	border-top: 2px solid black;
 	border-bottom: 2px solid black;
-	padding: 0.5rem 0;	
 }
 
 /* STATE MANAGER */
@@ -86,7 +89,7 @@ div#filter-div div#collection-loader {
 
 div#filter-div {
 	justify-content: center;
-	min-width: 20vw;
+	min-width: 21vw;
 	padding: 1rem;
 	border-right: 3px solid black;
 	height: 100vh;
@@ -110,8 +113,11 @@ div.filter-field{
 	border-bottom: 1px rgb(87, 87, 87) dashed;
 }
 
-div#filter-div select#filter-convertedRetreatCost {
+div#filter-div #filter-convertedRetreatCost {
 	white-space: normal;
+}
+div#filter-div #filter-convertedRetreatCost input{
+	margin-right: 0;
 }
 
 div#filter-div button.toggle-expand {
@@ -224,9 +230,22 @@ section.cards-data {
 div.center-div .cards-data .card-template{	
     /* margin-left: 1.1%;
     margin-right: 1.1%; */
-	max-width: 22%;
-	min-width: 14.5vw;
+	max-width: 24%;
+	min-width: 22%;
 }
+@media screen and (max-width: 1200px) {
+	div.center-div .cards-data .card-template {
+		max-width: 31%;
+		min-width: 28%;
+	}
+}
+@media screen and (max-width: 768px) {
+	div.center-div .cards-data .card-template {
+		max-width: 48%;
+		min-width: 5vw;
+	}
+}
+
 
 
 .cards-data .card-picture img { 
@@ -267,9 +286,13 @@ div.center-div .cards-data .card-template{
 	justify-content: center;
 }
 
-div#deck-builder .cards-data .card-template{
-	max-width: 45%;
-	min-width: 8vw;
+div#deck-builder .cards-data .card-template {
+	max-width: 48%;
+}
+@media screen and (max-width: 768px) {
+	div#deck-builder .cards-data .card-template {
+		max-width: 90%;
+	}
 }
 div#deck-builder .cards-data .card-name {
 	font-size: calc(0.6vw + 0.3rem);
@@ -295,11 +318,17 @@ div#deck-builder section.cards-data h3{
 	padding: 2.5% 0;
 }
 div#deck-builder.visible {
-	max-width: 25vw;
+	max-width: 20vw;
 	min-width: 18vw;
 	text-align: center;
 	height: 100vh;
 	overflow: scroll;
+}
+@media screen and (max-width: 1200px) {
+	div#deck-builder.visible {
+		max-width: 25vw;
+		min-width: 20vw;
+	}
 }
 div#deck-builder.visible h2#decklist-name{
 	font-size: 1.25rem;

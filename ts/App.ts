@@ -1,5 +1,5 @@
 import {CardData, CardInCollection, CardInDeck, RawCardData} from "./models/Card.js";
-import {Api} from "./api/Api.js";
+import {Api, ApiResult} from "./api/Api.js";
 import {Config} from "./Config.js";
 import {Game, FreeGame, SemiRuledGame} from "./Game.js";
 import {Cardlist, Collection, CopiedCollection, CopiedDecklist, Deck, Decklist} from "./models/Deck.js";
@@ -36,9 +36,9 @@ export class App {
 	$cardTemplatesWrapper: HTMLDivElement;
 
 	private _activeList?: Decklist | Collection;
-	collectionCardList?: CardData[];
-
 	cardListIsCollection: boolean;
+	displayedCollection?: Collection;
+	collectionCardList?: CardInCollection[];
 
 	constructor() {		
 		this.api = new Api(`${Config.ApiURI}`);
@@ -50,7 +50,9 @@ export class App {
 		this.pageManagers = [];
 		this.$cardTemplatesWrapper = document.querySelector('section.cards-data')!;
 		this.stateManager = new StateManager(this.state);
+
 		this.cardListIsCollection = false;
+		this.collectionCardList = [];
 	}
 	get activeList(): Decklist | Collection {
 		return this._activeList!;
@@ -89,19 +91,19 @@ export class App {
 			if (type === 'decklist') await this.newDeck();
 			else if (type === 'collection') await this.newCollection();
 		})
-		modal.$modalWrapper.querySelectorAll(`.${type}`).forEach($deck => {
-			$deck.addEventListener('click', async () => {
-				const name: string = $deck.querySelector(`p.${type}-name`)!.textContent!;
-				const deckJSON: string = localStorage.getItem(`${type}: ${name}`)!;
+		modal.$modalWrapper.querySelectorAll(`.${type}`).forEach($list => {
+			$list.addEventListener('click', async () => {
+				const name: string = $list.querySelector(`p.${type}-name`)!.textContent!;
+				const listJSON: string = localStorage.getItem(`${type}: ${name}`)!;
 
 				if (type === 'decklist') {
-					const storedDeck = JSON.parse(deckJSON) as Decklist;
+					const storedDeck = JSON.parse(listJSON) as Decklist;
 					let deck: CopiedDecklist = new CopiedDecklist(storedDeck);
 					console.log(deck.cards);
 					await this.loadDeck(deck);
 				} else if (type === 'collection') {
-					const storedDeck = JSON.parse(deckJSON) as Collection;
-					let collection: CopiedCollection = new CopiedCollection(storedDeck);
+					const storedCollection = JSON.parse(listJSON) as Collection;
+					let collection: CopiedCollection = new CopiedCollection(storedCollection);
 					await this.loadCollection(collection);
 				}
 			})
@@ -150,19 +152,32 @@ export class App {
 	addDisplayCollectionBtnListener() {
 		const $displayToggle: HTMLButtonElement = this.collectionMenu!.$wrapper!.querySelector('button.display-collection')!;
 		$displayToggle.addEventListener('click', async (e: Event) => {
+			
+			console.log(this.activeList);
 			$displayToggle.classList.toggle('displayed');
 			if ($displayToggle.classList.contains('displayed')) {
 				$displayToggle.textContent = 'Display all cards';
-				this.cardListIsCollection = true;
-				console.log(this.activeList.cards);
-				
-				await this.updateCardList();
+				this.loadDisplayedCollection();	
+				console.log('activeList.cards: ' + this.activeList.cards);
 			} else /* if (!$displayToggle.classList.contains('displayed')) */ {
 				$displayToggle.textContent = 'Display collection';
 				this.cardListIsCollection = false;
-				await this.searchWithFilters();
 			}
+			await this.searchWithFilters();
 		})
+	}
+	loadDisplayedCollection() {
+		this.cardListIsCollection = true;
+		if (this.activeList instanceof Collection) {
+			console.log('activeList = ' + this.activeList);
+			
+			this.displayedCollection = this.activeList;
+		} else {//if in deck-builder mode with a collection loaded
+			const select: HTMLSelectElement = this.filterForm!.$collectionLoader!.querySelector('.select-container select')!;
+			const collectionJSON: string = localStorage.getItem(`collection: ${select.value}`)!;
+			const storedCollection = JSON.parse(collectionJSON) as Collection;
+			this.displayedCollection = new CopiedCollection(storedCollection);
+		}
 	}
 
 	async newDeck() {
@@ -255,65 +270,32 @@ export class App {
 				this.filterForm.$collectionLoader!.querySelector('button.display-collection')!
 				.addEventListener('click', async () => {
 					const select: HTMLSelectElement = this.filterForm!.$collectionLoader!.querySelector('.select-container select')!;
-					if (select.value !== "none") {
-						this.cardListIsCollection = true;
-						await this.updateCardList();
+					if (select.value !== "none") {						
+						this.loadDisplayedCollection();
 					} else {
 						this.cardListIsCollection = false;
-						await this.searchWithFilters();
 					}
+					await this.searchWithFilters();
 				})
 			}
 		}
 		
     }
-	async searchWithFilters() {
+	getFilters() {
 		if (this.cardListIsCollection === false) {
 			this.filters = this.filterForm!.getFilters();
+		} else {
+			this.collectionCardList = this.displayedCollection!.cards;
+			this.collectionCardList = this.filterForm!.getCollectionFilters(this.collectionCardList);			
 		}
+	}
+	async searchWithFilters() {
+		this.getFilters();		
 		this.page = 1;
 		await this.updateCardList();
-		/* if (!!this.filterForm?.$collectionLoader) {
-			this.filterForm.getCollectionFilters();			
-		} */
 	}
-	/* searchCollectionWithFilters() {
-		this.filterForm!.filterFields.forEach((ff: FilterField) => {
-			if (ff.field instanceof HTMLFieldSetElement) {				
-				const checkedInputs: NodeListOf<HTMLInputElement> = ff.field.querySelectorAll('div input:checked')!;
-				console.log(checkedInputs);
-				if (checkedInputs.length < 1) return;
-				//Change here
-				this.filters += this.multipleQueries(ff, checkedInputs);
-			}
-			else if (ff.type === "checkbox") {
-				const input: HTMLElement | null = ff.$formWrapper.querySelector(`input:checked`);
-				if (!!input) {
-					//Change here
-					this.filters += ` ${this.convertToQuery(ff.id, input.id)}`
-				}
-			}
-			else {
-				if (!!ff.field.value) {
-					if (ff.field.multiple === false) {	
-						//Change here				
-						this.filters += ` ${this.convertToQuery(ff.id, ff.field.value)}`;
-						//ex: ff.id = filter-name, ff.field.value = "Pikachu" => name:"Pikachu"
-					}
-					else {
-						const checkedOptions: NodeListOf<HTMLOptionElement> = ff.field.querySelectorAll('div option:checked')!;
-						console.log(checkedOptions);
-						if (checkedOptions.length < 1) return;
-						//Change here
-						this.filters += this.multipleQueries(ff, checkedOptions);
-						//ex: " (subtype:"EX" OR subtype:"VSTAR")"			
-					}
-				}
-			}
-		})
-	} */
 
-	async fetchCards(page: number, filters?: string) {
+	async fetchCards(page: number, filters?: string): Promise<ApiResult> {
 		return await this.api.getCards(Config.displayedPerPage, page, filters?? "");
 		/* for (let i in cardsData) {
 			this.cardList.push(new CardData(cardsData[i], +i + 1));
@@ -330,20 +312,11 @@ export class App {
 			count = apiData.count;
 			totalCount = apiData.totalCount;
 		}
-		else /* if (this.cardListIsCollection) */ {
-			if (this.activeList instanceof Collection) {
-				this.collectionCardList = this.activeList.cards;
-			} else {
-				const select: HTMLSelectElement = this.filterForm!.$collectionLoader!.querySelector('.select-container select')!;
-				const collectionJSON: string = localStorage.getItem(`collection: ${select.value}`)!;
-				const collection = JSON.parse(collectionJSON) as Collection;
-				this.collectionCardList = collection.cards.map((card) => new CardInCollection(card));
-			}
-			//if(!!filters){this.filterCollectionCardList(this.collectionCardList);}
-			this.cardList = this.collectionCardList;//Change later to include the amount displayed on 1 page
+		else /* if collection is displayed */ {
+			//Change page, doesn't load filters now
+			this.cardList = this.collectionCardList!;//Change later to take the page into account
 
-			this.totalPages = Math.ceil(this.cardList.length / Config.displayedPerPage);
-			this.page = 1;//Change later			
+			this.totalPages = Math.ceil(this.cardList.length / Config.displayedPerPage);			
 			count = this.cardList.length < Config.displayedPerPage ? this.cardList.length: Config.displayedPerPage;
 			totalCount = this.collectionCardList!.length;
 		}
@@ -352,8 +325,28 @@ export class App {
 		this.pageManagers[1].$pageCounter.innerHTML =
 		`Page: ${this.page}/${this.totalPages > 1 ?this.totalPages: 1} (displaying ${count} cards out of ${totalCount})`;
 		console.log(this.cardList);
+		this.pageManagers[0].$pageSelectorInput.max = `${this.totalPages!}`;
+		this.pageManagers[1].$pageSelectorInput.value = `${this.page}`;
 	}
-	
+
+	displayCards() {
+		this.$cardTemplatesWrapper.innerHTML = "";
+		const $modalWrapper: HTMLDivElement = document.querySelector('.card-modal')!;
+		if ( $modalWrapper.classList.contains('modal-on') ) Modal.closeModal($modalWrapper);
+
+		this.cardList.forEach((card: RawCardData | CardData) => {
+			let cardTemplate:CardTemplate = this.createCardTemplate(card, this.$cardTemplatesWrapper);
+			if (this.state === 'deck-builder' || this.state === 'collection-manager') {
+				cardTemplate = CardWithDecklistBtn(cardTemplate, this.activeList);
+				this.addDeckCountListeners(card, cardTemplate);
+			}
+		})
+	}
+	async updateCardList() {
+		await this.loadCardData(this.filters?? "");
+		this.displayCards();
+	}
+
 	async loadCardListPage() {
 		await this.updateCardList();
 		const properties: string | null = localStorage.getItem("card-properties");
@@ -455,28 +448,6 @@ export class App {
 			if (this.state === 'deck-builder')this.deckBuilder!.removeCardFromCount(card);
 			if (!cardTemplate.$wrapper) return;
 			$deckCounter.textContent = `${cardInList.count}`;
-		})
-	}
-	displayCards() {
-		this.$cardTemplatesWrapper.innerHTML = "";
-		const $modalWrapper: HTMLDivElement = document.querySelector('.card-modal')!;
-		if ( $modalWrapper.classList.contains('modal-on') ) Modal.closeModal($modalWrapper);
-
-		this.cardList.forEach((card: RawCardData | CardData) => {
-			let cardTemplate:CardTemplate = this.createCardTemplate(card, this.$cardTemplatesWrapper);
-			if (this.state === 'deck-builder' || this.state === 'collection-manager') {
-				cardTemplate = CardWithDecklistBtn(cardTemplate, this.activeList);
-				this.addDeckCountListeners(card, cardTemplate);
-			}
-		})
-	}
-
-	async updateCardList() {
-		await this.loadCardData(this.filters?? "");
-		this.displayCards();
-		this.pageManagers.forEach((pm: PageManager) => {			
-			pm.$pageSelectorInput.max = `${this.totalPages!}`;
-			pm.$pageSelectorInput.value = `${this.page}`;
 		})
 	}
 

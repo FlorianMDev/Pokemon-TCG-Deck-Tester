@@ -29,7 +29,9 @@ export class CardData {
         }
         else {
             this.setName = `${data.set.id} - ${data.set.name}`;
-            this.legality = data.legalities.standard ? data.legalities.standard : undefined;
+            this.legality = false;
+            if (!!data.legalities.standard && data.legalities.standard === "Legal")
+                this.legality = true;
             this.avgPrice = data.cardmarket ? data.cardmarket.prices.averageSellPrice : undefined;
             this.count = 1;
             this.releaseDate = data.set.releaseDate;

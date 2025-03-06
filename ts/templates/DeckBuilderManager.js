@@ -73,7 +73,8 @@ export class DeckBuilderManager {
             const input = $editName.querySelector("input");
             input.value = this.decklist.name;
             input.maxLength = 20;
-            $deckStateDiv.querySelector("button").addEventListener('click', () => {
+            $deckStateDiv.querySelector("button").addEventListener('click', (event) => {
+                event.preventDefault();
                 this.decklist.name = $editName.querySelector("input").value;
                 $name.textContent = !!this.decklist.name ? this.decklist.name : "(Unnamed)";
                 $name.appendChild($editNameBtn);

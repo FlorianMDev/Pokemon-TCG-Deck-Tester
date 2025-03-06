@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 export class CardProperties {
     constructor(api) {
         this.api = api;
-        this.supertypes = ["Pokemon", "Energy", "Trainer"];
+        this.supertypes = ["Pokémon", "Energy", "Trainer"];
         this.subtypes = [];
         this.types = [];
         this.sets = [];

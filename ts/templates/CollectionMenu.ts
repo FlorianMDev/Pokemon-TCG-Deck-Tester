@@ -73,11 +73,12 @@ export class CollectionMenu {
 
 		$editNameBtn.addEventListener('click', () => {
 			$editName.innerHTML = `<input name="edit-name" id="edit-name">
-			<button type="submit">rename</button>`;
+			<button type="button">rename</button>`;
 			const input: HTMLInputElement = $editName.querySelector("input")!;
 			input.value = this.collection.name;
 			input.maxLength=20;
-			this.$wrapper.querySelector("button")!.addEventListener('click', () => {
+			this.$wrapper.querySelector("button")!.addEventListener('click', (event) => {
+				event.preventDefault();
 				this.collection.name = $editName.querySelector("input")!.value;
 				$name.textContent = !!this.collection.name? this.collection.name: "(Unnamed)";
 				$name.appendChild($editNameBtn);

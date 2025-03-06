@@ -11,7 +11,7 @@ export class CardProperties {
 	
 	constructor(api: Api) {
 		this.api = api;
-		this.supertypes = ["Pokemon", "Energy", "Trainer"];
+		this.supertypes = ["Pokémon", "Energy", "Trainer"];
 		this.subtypes = [];
 		this.types = [];
 		this.sets = [];
@@ -35,5 +35,6 @@ export class CardProperties {
 		console.log(this.rarities);
 		localStorage.setItem("card-properties",JSON.stringify(this));
 	}
+	
 
 }

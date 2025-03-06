@@ -154,12 +154,13 @@ export class CopiedDecklist extends Decklist{
 		this.active = decklist.active;
 	}
 	sortPokémonByDexNumber(a: CardInDeck, b: CardInDeck) {
-		console.log(`a: ${a.dexNumber}, b:${b.dexNumber}`);
 		if (a.supertype === "Pokémon") {
 			if(b.supertype === "Pokémon") return a.dexNumber! - b.dexNumber!;
-		} else return -1;
+			else return -1;
+		} 
 		if (a.supertype !== "Pokémon") {
-			return +1;
+			if(b.supertype === "Pokémon") return +1;
+			else return 0;
 		}
 	}
 }

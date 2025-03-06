@@ -1,7 +1,7 @@
 
 import { CardProperties } from "../CardProperties.js";
 import { Config } from "../Config.js";
-import { CardData, RawCardData } from "../models/Card.js";
+import { CardData, CardInCollection, RawCardData } from "../models/Card.js";
 import { Collection } from "../models/Deck.js";
 
 export class FilterForm {
@@ -98,7 +98,7 @@ export class FilterForm {
 
 		const filterSupertype: FilterField = this.createSelectFilter('filter-supertype', 'Filter by supertype', this.cardProperties!.supertypes);
 		this._filterFields.push(filterSupertype);
-
+		
 		const filterSubtype: FilterField = this.createCheckboxFilter('filter-subtypes', 'Filter by subtype', this.cardProperties!.subtypes);
 		this._filterFields.push(filterSubtype);
 
@@ -125,12 +125,16 @@ export class FilterForm {
 		this._filterFields.push(filterRarities);
 		this.renderAll();
 		this.createResetBtn();
+		this.reduceSubtypeFilter();
 	}
 	
 	renderAll () {		
 		this._filterFields.forEach((ff: FilterField) => {			
 			ff.render(this.$formWrapper);
 		})		
+	}
+	reduceSubtypeFilter(){
+		
 	}
 	resetFilters() {
 		console.log("resetting filters");
@@ -141,7 +145,7 @@ export class FilterForm {
 	}
 	
 	createInputFilter(id: string, label: string, type?: string): InputFilterField {
-		let filter = new InputFilterField(id, 'input');
+		let filter = new InputFilterField(id);
 		filter.$formWrapper.innerHTML =	`
 		<label for="${filter.id}">${label}</label>
 		<input name="${filter.id}" id="${filter.id}"${!!type? ` type=${type}`:""}>`;
@@ -190,7 +194,7 @@ export class FilterForm {
 		return filter;
 	}
 	createSelectFilter(id: string, label: string, options: string[], multiple?: string): FilterField {
-		let filter = new FilterField(id, 'select');
+		let filter = new SelectFilterField(id);
 		filter.$formWrapper.innerHTML =	`
 		<label for="${filter.id}">${label}</label>
 		${filter.id === "filter-convertedRetreatCost"?"":`<button class="toggle-expand" type="button">Expand</button>`}
@@ -200,18 +204,17 @@ export class FilterForm {
 			</select>
 		</div>`;
 		options.forEach((op: string) => {
-			filter.field!.innerHTML += `<option value="${op.toLowerCase().replace(/\s+/g, '-')}">${op}</option>`
+			filter.field!.innerHTML += `<option value="${op/* .toLowerCase() */.replace(/\s+/g, '-')}">${op}</option>`
 		})
 		
 		if (filter.id !== "filter-convertedRetreatCost") {
 			const expandBtn: HTMLButtonElement = filter.$formWrapper.querySelector('button.toggle-expand')!;
-			const that: FilterForm = this;
-			expandBtn.addEventListener('click', () => that.expandOrReduceField(expandBtn, filter.field as HTMLSelectElement, options.length));
+			expandBtn.addEventListener('click', () => this.expandOrReduceField(expandBtn, filter.field as HTMLSelectElement, options.length));
 		}			
 		return filter;
 	}
 	createCheckboxFilter(id: string, label: string, options: string[]): FilterField {
-		let filter = new FilterField(id, 'fieldset');
+		let filter = new FieldsetFilterField(id);
 		filter.$formWrapper.innerHTML =	`
 		<fieldset name="${filter.id}" id ="${filter.id}">
 			<legend>${label}</legend>
@@ -241,7 +244,7 @@ export class FilterForm {
 			if (input != checked[0]) {
 				filter += ' OR ';
 			}
-			if (ff.field instanceof HTMLFieldSetElement) filter += this.convertToQuery(ff.id, input.id);
+			if (ff instanceof FieldsetFilterField) filter += this.convertToQuery(ff.id, input.id);
 			else filter += this.convertToQuery(ff.id, input.value);
 		}
 		if (checked.length > 1) return ` (${filter})`;
@@ -251,21 +254,25 @@ export class FilterForm {
 		switch (property) {
 			case "filter-legality" :
 				return `legalities.standard:"${requested}"`;
+			case "filter-supertype":
+				if (requested === "Pokemon") requested = "Pokémon";
+				return `!supertype:"${requested}"`;
 			case "filter-name" :
-				return `${`${property}`.replace('filter-','')}:"*${requested}*"`;
+				return `name:"*${requested}*"`;
 			case "filter-set" :
-				return `${`${property}.name`.replace('filter-','')}:"*${requested}*"`;				
+				return `set.name:"*${requested}*"`;				
 			case 'filter-weaknesses':
+				return `!weaknesses.type:"${requested}"`;
 			case 'filter-resistances':
-				return `!${`${property}.type`.replace('filter-','')}:"${requested}"`;
+				return `!resistances.type:"${requested}"`;
 			case 'filter-hp':
 				if (requested === "any")
 					return '';
-				return `${`${property}`.replace('filter-','')}:[${requested}]`;
+				return `hp:[${requested}]`;
 			case 'filter-rarity':
-				return `!${property.replace('filter-','')}:"${requested.replace(/-/g,' ')}"`;
+				return `!rarity:"${requested.replace(/-/g,' ')}"`;
 			case 'filter-convertedRetreatCost':
-				return `!${property.replace('filter-','')}:${requested}`;
+				return `!convertedRetreatCost:${requested}`;
 			default:
 				return `!${property.replace('filter-','')}:"${requested.replace(/-/g,' ')}"`;
 		}
@@ -273,25 +280,24 @@ export class FilterForm {
 	getFilters() {
 		this.filters = '';
 		this._filterFields.forEach((ff: FilterField) => {
-			if (ff.field instanceof HTMLFieldSetElement) {				
+			if (ff.field instanceof HTMLFieldSetElement) {			
 				const checkedInputs: NodeListOf<HTMLInputElement> = ff.field.querySelectorAll('div input:checked')!;
 				console.log(checkedInputs);
 				if (checkedInputs.length < 1) return;
 				this.filters += this.multipleQueries(ff, checkedInputs);
-			}
-			else if (ff.type === "checkbox") {
-				const input: HTMLElement | null = ff.$formWrapper.querySelector(`input:checked`);
-				if (!!input) {
-					this.filters += ` ${this.convertToQuery(ff.id, input.id)}`
-				}
-			}
-			else {
-				if (!!ff.field.value) {
-					if (ff.field.multiple === false) {					
-						this.filters += ` ${this.convertToQuery(ff.id, ff.field.value)}`;
-						//ex: ff.id = filter-name, ff.field.value = "Pikachu" => name:"Pikachu"
+			} else {
+				if (ff.type === "checkbox") {
+					const input: HTMLElement | null = ff.$formWrapper.querySelector(`input:checked`);
+					if (!!input) {
+						this.filters += ` ${this.convertToQuery(ff.id, input.id)}`
 					}
-					else {
+				}
+				else {
+					if (!ff.field.value) return;
+					if (ff.field.multiple === false) {					
+							this.filters += ` ${this.convertToQuery(ff.id, ff.field.value)}`;
+							//ex: ff.id = filter-name, ff.field.value = "Pikachu" => name:"Pikachu"
+					} else {
 						const checkedOptions: NodeListOf<HTMLOptionElement> = ff.field.querySelectorAll('div option:checked')!;
 						console.log(checkedOptions);
 						if (checkedOptions.length < 1) return;
@@ -300,64 +306,137 @@ export class FilterForm {
 					}
 				}
 			}
+			
 		})
 		console.log(this.filters);
 		
 		return this.filters;
 	}
-	getCollectionFilters() {
+	getCollectionFilters(collection: CardInCollection[]): CardInCollection[]{
+		console.log("filtering collection");		
 		this._filterFields.forEach((ff: FilterField) => {
-			if (ff.field instanceof HTMLFieldSetElement) {				
+			if (ff.field instanceof HTMLFieldSetElement) {
+				ff.field
 				const checkedInputs: NodeListOf<HTMLInputElement> = ff.field.querySelectorAll('div input:checked')!;
 				console.log(checkedInputs);
-				if (checkedInputs.length < 1) return;
-				this.filters += this.multipleQueries(ff, checkedInputs);
-			}
-			else if (ff.type === "checkbox") {
-				const input: HTMLElement | null = ff.$formWrapper.querySelector(`input:checked`);
-				if (!!input) {
-					this.filters += ` ${this.convertToQuery(ff.id, input.id)}`
+				if (checkedInputs.length < 1) return collection;
+				if (ff.id === 'filter-subtypes') {
+					const checkedSubtypes: string[] = [];
+					checkedInputs.forEach(input => checkedSubtypes.push(input.id));
+					collection = collection.filter(card => this.checkSubtypes(card, checkedSubtypes));
+					//(API has both "ex" and "EX" as lowercase in subtypes property but includes is case sensitive)
+				} else if (ff.id === 'filter-convertedRetreatCost') {
+					const checkedCosts: number[] = [];
+					checkedInputs.forEach(input => checkedCosts.push(parseInt(input.id)));
+					collection = collection.filter(card => checkedCosts.includes(card.convertedRetreatCost) );
 				}
-			}
-			else {
-				if (!!ff.field.value) {
-					if (ff.field.multiple === false) {					
-						this.filters += ` ${this.convertToQuery(ff.id, ff.field.value)}`;
-						//ex: ff.id = filter-name, ff.field.value = "Pikachu" => name:"Pikachu"
+			} else {
+				if (ff.type === "checkbox") {
+					const input: HTMLElement | null = ff.$formWrapper.querySelector(`input:checked`);
+					if (!input) return collection;
+					if (ff.id === 'filter-legality') {
+						collection = collection.filter(card => card.legality === true || card.legality === "Legal");
 					}
-					else {
+				} else {
+					if (!ff.field.value) return collection;
+					if (ff.field.multiple === false) {
+						const value: string = ff.field.value;
+						//typescrit doesn't remember ff.field can't be HTMLFieldSetElement in the switch
+						collection = this.checkCollectionForValue(collection, ff.id, value);
+					} else {
 						const checkedOptions: NodeListOf<HTMLOptionElement> = ff.field.querySelectorAll('div option:checked')!;
 						console.log(checkedOptions);
-						if (checkedOptions.length < 1) return;
-						this.filters += this.multipleQueries(ff, checkedOptions);
+						if (checkedOptions.length < 1) return collection;
+						const checkedValues: string[] = [];
+						checkedOptions.forEach((option: HTMLOptionElement) => checkedValues.push(option.value))
+						collection = this.checkCollectionForMultipleValues(collection, ff.id, checkedValues);
+						//add code here
 						//ex: " (subtype:"EX" OR subtype:"VSTAR")"			
 					}
 				}
 			}
 		})
+		return collection;
 	}
-	/* subtypes: string[];
-	hp: number;
-	types: string[];
-	rules?: string[];
-	ancientTrait?: AncientTrait[];
-	abilities?: Ability[];
-	attacks: Attack[];
-	weaknesses: Weakness[];
-	resistances: Resistance[];
-	convertedRetreatCost: number;
-	set : Set;
-	images: Images;
-	avgPrice: number; */
+	checkCollectionForValue(collection: CardInCollection[], id: string, value: string): CardInCollection[] {
+		
+		console.log(id + ' = ' + value);
+		switch (id) {
+			case 'filter-name':
+				console.log(id + ' = ' + value);
+				collection = collection.filter(card => card.name.toLowerCase().includes(value.toLowerCase()));
+				break;
+			case 'filter-set':
+				console.log(id + ' = ' + value);
+				collection = collection.filter(card => card.setName.includes(value));
+				break;
+			case 'filter-hp':
+				console.log(id + ' = ' + value);
+				if (value === "any") return collection;
+				const HPRange: string[] = value.split(' ');
+				collection = collection.filter(card => card.hp >= parseInt(HPRange[0]) && card.hp <= parseInt(HPRange[2]));
+				break;
+			case 'filter-supertype':
+				console.log(id + ' = ' + value);
+				if (value === "Pokemon") value = "Pokémon";
+				collection = collection.filter(card => card.supertype === value);
+				break;
+			case 'filter-types':
+				console.log(id + ' = ' + value);
+				collection = collection.filter(card => card.types.includes(value));
+				break;
+			case 'filter-weaknesses':
+				console.log(id + ' = ' + value);
+				collection = collection.filter(card => card.weaknesses.find(cw => cw.type === value)?.type === value);
+				break;
+			case 'filter-resistances':
+				console.log(id + ' = ' + value);
+				collection = collection.filter(card => card.resistances.find(cw => cw.type === value)?.type === value);
+				break;
+			case 'filter-rarity':
+				console.log(id + ' = ' + value);
+				collection = collection.filter(card => card.rarity === value.replace(/-/g,' '));
+				break;
+		}
+		return collection;
+	}
+	checkCollectionForMultipleValues(collection: CardInCollection[], id: string, values: string[]): CardInCollection[] {
+		switch (id) {
+			case 'filter-supertype':
+				collection = collection.filter(card => values.includes(card.supertype));
+				//ex: ff.id = filter-name, ff.field.value = "Pikachu" => name:"Pikachu"
+				break;
+			case 'filter-subtypes':
+				collection = collection.filter(card => values.includes(card.supertype));
+				//ex: ff.id = filter-name, ff.field.value = "Pikachu" => name:"Pikachu"
+				break;
+		}
+		return collection;
+	}
+	checkSubtypes(card: CardInCollection, inputs: string[]): boolean {
+		let corresponds: boolean = false;
+		card.subtypes.forEach(subtype => {
+			if (inputs.find((input: string) => input === subtype)) {
+				corresponds = true;
+				return true;
+			}
+		})
+		return corresponds;
+	}
+	static capitalize(string: string) {
+		let firstLetter: string = string[0];
+		firstLetter = firstLetter.toUpperCase();
+		string = firstLetter + string.slice(1, string.length-1);
+	}
 }
-
+type FilterFieldType = "checkbox" | "input" | "select" | "fieldset";
 export class FilterField {
     id: string;
     $formWrapper: HTMLDivElement;
-	type: string;
+	type: FilterFieldType;
 	//private _field: HTMLInputElement | HTMLSelectElement;
 
-    constructor(id: string, type: string) {
+    constructor(id: string, type: FilterFieldType) {
         this.id = id;
         this.$formWrapper = document.createElement('div');
         this.$formWrapper.classList.add(`${id}-wrapper`, "filter-field");
@@ -370,7 +449,7 @@ export class FilterField {
     get field(): HTMLInputElement | HTMLSelectElement | HTMLFieldSetElement {
         return this.$formWrapper.querySelector(`${this.type}#${this.id}`)!;
     }
-	set field(field: HTMLInputElement | HTMLSelectElement) {
+	set field(field: HTMLInputElement | HTMLSelectElement | HTMLFieldSetElement) {
 		this.field = field;
 	}
 	/* set $output(output: HTMLOutputElement) {
@@ -382,25 +461,26 @@ export class FilterField {
 	}
 }
 class InputFilterField extends FilterField{
-    constructor(id: string, type: string) {
-    	super(id, type);
+    constructor(id: string) {
+    	super(id, "input");
     }
-    get field(): HTMLInputElement {
-        return this.$formWrapper.querySelector(`${this.type}#${this.id}`)!;
+	get field(): HTMLInputElement {
+        return this.$formWrapper.querySelector(`input#${this.id}`)!;
     }
-	set field(field: HTMLInputElement) {
-		this.field = field;
-	}
 }
-
 class SelectFilterField extends FilterField{
-    constructor(id: string, type: string) {
-    	super(id, type);
+    constructor(id: string) {
+    	super(id, "select");
     }
-    get field(): HTMLSelectElement {
-        return this.$formWrapper.querySelector(`${this.type}#${this.id}`)!;
+	get field(): HTMLSelectElement {
+        return this.$formWrapper.querySelector(`select#${this.id}`)!;
     }
-	set field(field: HTMLSelectElement) {
-		this.field = field;
-	}
+}
+class FieldsetFilterField extends FilterField{
+    constructor(id: string) {
+    	super(id, "fieldset");
+    }
+	get field(): HTMLFieldSetElement {
+        return this.$formWrapper.querySelector(`fieldset#${this.id}`)!;
+    }
 }

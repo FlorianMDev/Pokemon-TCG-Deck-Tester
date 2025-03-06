@@ -1,7 +1,7 @@
 import {RawCardData} from "../models/Card";
 import {Config} from "../Config.js";
 
-interface ApiResult {
+export interface ApiResult {
 	page: number; 
     pageSize: number;
     count: number; 

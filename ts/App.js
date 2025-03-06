@@ -7,7 +7,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-import { CardData, CardInCollection, CardInDeck } from "./models/Card.js";
+import { CardData, CardInDeck } from "./models/Card.js";
 import { Api } from "./api/Api.js";
 import { Config } from "./Config.js";
 import { Collection, CopiedCollection, CopiedDecklist, Decklist } from "./models/Deck.js";
@@ -34,6 +34,7 @@ export class App {
         this.$cardTemplatesWrapper = document.querySelector('section.cards-data');
         this.stateManager = new StateManager(this.state);
         this.cardListIsCollection = false;
+        this.collectionCardList = [];
     }
     get activeList() {
         return this._activeList;
@@ -75,19 +76,19 @@ export class App {
             else if (type === 'collection')
                 yield this.newCollection();
         }));
-        modal.$modalWrapper.querySelectorAll(`.${type}`).forEach($deck => {
-            $deck.addEventListener('click', () => __awaiter(this, void 0, void 0, function* () {
-                const name = $deck.querySelector(`p.${type}-name`).textContent;
-                const deckJSON = localStorage.getItem(`${type}: ${name}`);
+        modal.$modalWrapper.querySelectorAll(`.${type}`).forEach($list => {
+            $list.addEventListener('click', () => __awaiter(this, void 0, void 0, function* () {
+                const name = $list.querySelector(`p.${type}-name`).textContent;
+                const listJSON = localStorage.getItem(`${type}: ${name}`);
                 if (type === 'decklist') {
-                    const storedDeck = JSON.parse(deckJSON);
+                    const storedDeck = JSON.parse(listJSON);
                     let deck = new CopiedDecklist(storedDeck);
                     console.log(deck.cards);
                     yield this.loadDeck(deck);
                 }
                 else if (type === 'collection') {
-                    const storedDeck = JSON.parse(deckJSON);
-                    let collection = new CopiedCollection(storedDeck);
+                    const storedCollection = JSON.parse(listJSON);
+                    let collection = new CopiedCollection(storedCollection);
                     yield this.loadCollection(collection);
                 }
             }));
@@ -141,19 +142,32 @@ export class App {
     addDisplayCollectionBtnListener() {
         const $displayToggle = this.collectionMenu.$wrapper.querySelector('button.display-collection');
         $displayToggle.addEventListener('click', (e) => __awaiter(this, void 0, void 0, function* () {
+            console.log(this.activeList);
             $displayToggle.classList.toggle('displayed');
             if ($displayToggle.classList.contains('displayed')) {
                 $displayToggle.textContent = 'Display all cards';
-                this.cardListIsCollection = true;
-                console.log(this.activeList.cards);
-                yield this.updateCardList();
+                this.loadDisplayedCollection();
+                console.log('activeList.cards: ' + this.activeList.cards);
             }
             else /* if (!$displayToggle.classList.contains('displayed')) */ {
                 $displayToggle.textContent = 'Display collection';
                 this.cardListIsCollection = false;
-                yield this.searchWithFilters();
             }
+            yield this.searchWithFilters();
         }));
+    }
+    loadDisplayedCollection() {
+        this.cardListIsCollection = true;
+        if (this.activeList instanceof Collection) {
+            console.log('activeList = ' + this.activeList);
+            this.displayedCollection = this.activeList;
+        }
+        else { //if in deck-builder mode with a collection loaded
+            const select = this.filterForm.$collectionLoader.querySelector('.select-container select');
+            const collectionJSON = localStorage.getItem(`collection: ${select.value}`);
+            const storedCollection = JSON.parse(collectionJSON);
+            this.displayedCollection = new CopiedCollection(storedCollection);
+        }
     }
     newDeck() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -259,64 +273,32 @@ export class App {
                     .addEventListener('click', () => __awaiter(this, void 0, void 0, function* () {
                     const select = this.filterForm.$collectionLoader.querySelector('.select-container select');
                     if (select.value !== "none") {
-                        this.cardListIsCollection = true;
-                        yield this.updateCardList();
+                        this.loadDisplayedCollection();
                     }
                     else {
                         this.cardListIsCollection = false;
-                        yield this.searchWithFilters();
                     }
+                    yield this.searchWithFilters();
                 }));
             }
         }
     }
+    getFilters() {
+        if (this.cardListIsCollection === false) {
+            this.filters = this.filterForm.getFilters();
+        }
+        else {
+            this.collectionCardList = this.displayedCollection.cards;
+            this.collectionCardList = this.filterForm.getCollectionFilters(this.collectionCardList);
+        }
+    }
     searchWithFilters() {
         return __awaiter(this, void 0, void 0, function* () {
-            if (this.cardListIsCollection === false) {
-                this.filters = this.filterForm.getFilters();
-            }
+            this.getFilters();
             this.page = 1;
             yield this.updateCardList();
-            /* if (!!this.filterForm?.$collectionLoader) {
-                this.filterForm.getCollectionFilters();
-            } */
         });
     }
-    /* searchCollectionWithFilters() {
-        this.filterForm!.filterFields.forEach((ff: FilterField) => {
-            if (ff.field instanceof HTMLFieldSetElement) {
-                const checkedInputs: NodeListOf<HTMLInputElement> = ff.field.querySelectorAll('div input:checked')!;
-                console.log(checkedInputs);
-                if (checkedInputs.length < 1) return;
-                //Change here
-                this.filters += this.multipleQueries(ff, checkedInputs);
-            }
-            else if (ff.type === "checkbox") {
-                const input: HTMLElement | null = ff.$formWrapper.querySelector(`input:checked`);
-                if (!!input) {
-                    //Change here
-                    this.filters += ` ${this.convertToQuery(ff.id, input.id)}`
-                }
-            }
-            else {
-                if (!!ff.field.value) {
-                    if (ff.field.multiple === false) {
-                        //Change here
-                        this.filters += ` ${this.convertToQuery(ff.id, ff.field.value)}`;
-                        //ex: ff.id = filter-name, ff.field.value = "Pikachu" => name:"Pikachu"
-                    }
-                    else {
-                        const checkedOptions: NodeListOf<HTMLOptionElement> = ff.field.querySelectorAll('div option:checked')!;
-                        console.log(checkedOptions);
-                        if (checkedOptions.length < 1) return;
-                        //Change here
-                        this.filters += this.multipleQueries(ff, checkedOptions);
-                        //ex: " (subtype:"EX" OR subtype:"VSTAR")"
-                    }
-                }
-            }
-        })
-    } */
     fetchCards(page, filters) {
         return __awaiter(this, void 0, void 0, function* () {
             return yield this.api.getCards(Config.displayedPerPage, page, filters !== null && filters !== void 0 ? filters : "");
@@ -337,20 +319,10 @@ export class App {
                 count = apiData.count;
                 totalCount = apiData.totalCount;
             }
-            else /* if (this.cardListIsCollection) */ {
-                if (this.activeList instanceof Collection) {
-                    this.collectionCardList = this.activeList.cards;
-                }
-                else {
-                    const select = this.filterForm.$collectionLoader.querySelector('.select-container select');
-                    const collectionJSON = localStorage.getItem(`collection: ${select.value}`);
-                    const collection = JSON.parse(collectionJSON);
-                    this.collectionCardList = collection.cards.map((card) => new CardInCollection(card));
-                }
-                //if(!!filters){this.filterCollectionCardList(this.collectionCardList);}
-                this.cardList = this.collectionCardList; //Change later to include the amount displayed on 1 page
+            else /* if collection is displayed */ {
+                //Change page, doesn't load filters now
+                this.cardList = this.collectionCardList; //Change later to take the page into account
                 this.totalPages = Math.ceil(this.cardList.length / Config.displayedPerPage);
-                this.page = 1; //Change later			
                 count = this.cardList.length < Config.displayedPerPage ? this.cardList.length : Config.displayedPerPage;
                 totalCount = this.collectionCardList.length;
             }
@@ -359,6 +331,28 @@ export class App {
             this.pageManagers[1].$pageCounter.innerHTML =
                 `Page: ${this.page}/${this.totalPages > 1 ? this.totalPages : 1} (displaying ${count} cards out of ${totalCount})`;
             console.log(this.cardList);
+            this.pageManagers[0].$pageSelectorInput.max = `${this.totalPages}`;
+            this.pageManagers[1].$pageSelectorInput.value = `${this.page}`;
+        });
+    }
+    displayCards() {
+        this.$cardTemplatesWrapper.innerHTML = "";
+        const $modalWrapper = document.querySelector('.card-modal');
+        if ($modalWrapper.classList.contains('modal-on'))
+            Modal.closeModal($modalWrapper);
+        this.cardList.forEach((card) => {
+            let cardTemplate = this.createCardTemplate(card, this.$cardTemplatesWrapper);
+            if (this.state === 'deck-builder' || this.state === 'collection-manager') {
+                cardTemplate = CardWithDecklistBtn(cardTemplate, this.activeList);
+                this.addDeckCountListeners(card, cardTemplate);
+            }
+        });
+    }
+    updateCardList() {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            yield this.loadCardData((_a = this.filters) !== null && _a !== void 0 ? _a : "");
+            this.displayCards();
         });
     }
     loadCardListPage() {
@@ -469,30 +463,6 @@ export class App {
             if (!cardTemplate.$wrapper)
                 return;
             $deckCounter.textContent = `${cardInList.count}`;
-        });
-    }
-    displayCards() {
-        this.$cardTemplatesWrapper.innerHTML = "";
-        const $modalWrapper = document.querySelector('.card-modal');
-        if ($modalWrapper.classList.contains('modal-on'))
-            Modal.closeModal($modalWrapper);
-        this.cardList.forEach((card) => {
-            let cardTemplate = this.createCardTemplate(card, this.$cardTemplatesWrapper);
-            if (this.state === 'deck-builder' || this.state === 'collection-manager') {
-                cardTemplate = CardWithDecklistBtn(cardTemplate, this.activeList);
-                this.addDeckCountListeners(card, cardTemplate);
-            }
-        });
-    }
-    updateCardList() {
-        return __awaiter(this, void 0, void 0, function* () {
-            var _a;
-            yield this.loadCardData((_a = this.filters) !== null && _a !== void 0 ? _a : "");
-            this.displayCards();
-            this.pageManagers.forEach((pm) => {
-                pm.$pageSelectorInput.max = `${this.totalPages}`;
-                pm.$pageSelectorInput.value = `${this.page}`;
-            });
         });
     }
     startGame(mode) {
