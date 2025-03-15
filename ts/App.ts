@@ -72,7 +72,7 @@ export class App {
 		})
 		if (this.state !== 'card-list') {
 			this.stateManager!.$defaultCardListBtn!.addEventListener('click', async () => {
-				this.cardListMode();
+				this.defaultCardListMode();
 			})
 		}
 	}
@@ -115,7 +115,7 @@ export class App {
 		
 		this.loadFilters();
 	}
-	async cardListMode() {
+	async defaultCardListMode() {
 		if (this.cardListIsCollection) this.cardListIsCollection = false;
 		if (this.state === 'deck-builder') {
 			this.deckBuilder!.$wrapper.innerHTML='';
@@ -130,21 +130,25 @@ export class App {
 	}
 
 	async newCollection() {
-		this.state = 'collection-manager';
-		this.updateStateManager();
 		this.activeList = new Collection();
 		await this.updateCardList();
 		this.loadCollectionMenu(this.activeList as Collection);
-	}
-	async loadCollection(collection: Collection) {
 		this.state = 'collection-manager';
 		this.updateStateManager();
+	}
+	async loadCollection(collection: Collection) {
 		this.activeList = collection;
 		console.log(collection);
 		await this.updateCardList();
 		this.loadCollectionMenu(collection);
+		this.state = 'collection-manager';
+		this.updateStateManager();
 	}
 	loadCollectionMenu(collection:Collection) {
+		if (this.state === 'deck-builder') {
+			this.deckBuilder!.$wrapper.innerHTML='';
+			this.deckBuilder!.$wrapper.classList.remove('visible');
+		}
 		this.collectionMenu = new CollectionMenu(collection);
 		this.collectionMenu.render();
 		this.addDisplayCollectionBtnListener();
@@ -154,23 +158,26 @@ export class App {
 		$displayToggle.addEventListener('click', async (e: Event) => {
 			
 			console.log(this.activeList);
-			$displayToggle.classList.toggle('displayed');
-			if ($displayToggle.classList.contains('displayed')) {
-				$displayToggle.textContent = 'Display all cards';
+			if (!$displayToggle.classList.contains('displayed')) {
 				this.loadDisplayedCollection();	
 				console.log('activeList.cards: ' + this.activeList.cards);
-			} else /* if (!$displayToggle.classList.contains('displayed')) */ {
-				$displayToggle.textContent = 'Display collection';
+				await this.searchWithFilters();
+				$displayToggle.classList.toggle('displayed');
+				$displayToggle.textContent = 'Display all cards';
+			} else /* if ($displayToggle.classList.contains('displayed')) */ {
 				this.cardListIsCollection = false;
+				await this.searchWithFilters();
+				const $collectionDisplay: HTMLElement = document.querySelector('.center-div h3')!;
+				$collectionDisplay.outerHTML = '';
+				$displayToggle.classList.toggle('displayed');
+				$displayToggle.textContent = 'Display collection';
 			}
-			await this.searchWithFilters();
 		})
 	}
 	loadDisplayedCollection() {
-		this.cardListIsCollection = true;
+				this.cardListIsCollection = true;
 		if (this.activeList instanceof Collection) {
-			console.log('activeList = ' + this.activeList);
-			
+			console.log('activeList = ' + this.activeList);			
 			this.displayedCollection = this.activeList;
 		} else {//if in deck-builder mode with a collection loaded
 			const select: HTMLSelectElement = this.filterForm!.$collectionLoader!.querySelector('.select-container select')!;
@@ -178,6 +185,11 @@ export class App {
 			const storedCollection = JSON.parse(collectionJSON) as Collection;
 			this.displayedCollection = new CopiedCollection(storedCollection);
 		}
+		const $centerDiv: HTMLElement = document.querySelector('.center-div')!;
+		const $collectionDisplay: HTMLElement = document.createElement('h3');
+		$collectionDisplay.innerHTML = `"${this.displayedCollection.name}" collection displayed`;
+		const $cardListCardsData: HTMLElement = document.querySelector('.center-div section.cards-data')!;
+		$centerDiv.insertBefore($collectionDisplay, $cardListCardsData);
 	}
 
 	async newDeck() {
@@ -274,6 +286,8 @@ export class App {
 						this.loadDisplayedCollection();
 					} else {
 						this.cardListIsCollection = false;
+						const $collectionDisplay: HTMLElement = document.querySelector('.center-div h3')!;
+						$collectionDisplay.outerHTML = '';
 					}
 					await this.searchWithFilters();
 				})

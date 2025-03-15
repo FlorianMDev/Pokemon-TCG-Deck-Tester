@@ -93,8 +93,17 @@ export class FilterForm {
 		//this.createCheckboxFilter('filter-legality', 'Legality in standard format', ['Legal']);
 		this._filterFields.push(filterLegality);
 
-		const filterName: FilterField = this.createInputFilter('filter-name', 'Search by name');
+		const filterName: InputFilterField = this.createInputFilter('filter-name', 'Search by name');
 		this._filterFields.push(filterName);
+		filterName.field.id = "filter-name-is";
+
+		const filterID: InputFilterField = this.createInputFilter('filter-id', 'Search by ID');
+		this._filterFields.push(filterID);
+		filterID.field.id = "filter-id-is";
+
+		const filterSets: InputFilterField = this.createInputFilter('filter-set', 'Search by sets');
+		this._filterFields.push(filterSets);
+		filterSets.field.id = "filter-set-is";
 
 		const filterSupertype: FilterField = this.createSelectFilter('filter-supertype', 'Filter by supertype', this.cardProperties!.supertypes);
 		this._filterFields.push(filterSupertype);
@@ -118,14 +127,14 @@ export class FilterForm {
 		filterRetreatCost.field.setAttribute("size", '2');
 		this._filterFields.push(filterRetreatCost);
 
-		const filterSets: FilterField = this.createInputFilter('filter-set', 'Search by sets');
-		this._filterFields.push(filterSets);
-
 		const filterRarities: FilterField = this.createSelectFilter('filter-rarity', 'Filter by rarity', this.cardProperties!.rarities);
 		this._filterFields.push(filterRarities);
 		this.renderAll();
+		
+		this.addIsOrContains(filterName);
+		this.addIsOrContains(filterID);
+		this.addIsOrContains(filterSets);
 		this.createResetBtn();
-		this.reduceSubtypeFilter();
 	}
 	
 	renderAll () {		
@@ -133,8 +142,19 @@ export class FilterForm {
 			ff.render(this.$formWrapper);
 		})		
 	}
-	reduceSubtypeFilter(){
-		
+	addIsOrContains(filterField: InputFilterField){
+		const $selector: HTMLSelectElement = document.createElement('select');
+		$selector.id = `${filterField.id}-is-or-contains`;
+		$selector.innerHTML = `
+		<option value="is">Is</option>
+		<option value="contains">Contains</option>
+		`;
+		$selector.addEventListener("input", () => {
+			console.log(filterField);		
+			filterField.field.id = `${filterField.id}-${$selector.value}`;
+			filterField.$label.setAttribute("for", `${filterField.id}-${$selector.value}`);
+		})
+		filterField.$formWrapper.appendChild($selector);
 	}
 	resetFilters() {
 		console.log("resetting filters");
@@ -148,7 +168,7 @@ export class FilterForm {
 		let filter = new InputFilterField(id);
 		filter.$formWrapper.innerHTML =	`
 		<label for="${filter.id}">${label}</label>
-		<input name="${filter.id}" id="${filter.id}"${!!type? ` type=${type}`:""}>`;
+		<input name="${filter.id.replace("filter-", '')}" id="${filter.id}"${!!type? ` type=${type}`:""}>`;
 		return filter;
 	}
 	createRangeFilter(id: string, label: string, step: number, max: number, type?: string): InputFilterField {
@@ -176,12 +196,6 @@ export class FilterForm {
 			$(`#${filter.id}`).val("any");
 		  } );
 		
-		/* filter.field.setAttribute("step", `${step}`);
-		filter.field.setAttribute("min", `0`);
-		filter.field.setAttribute("max", `${max}`);		
-		filter.field.setAttribute("value", `0`);
-		filter.$formWrapper.innerHTML += `<output name="${id}-output" id="${id}" for="${id}">any</output>`; */
-
 		let $output: HTMLOutputElement = filter.$formWrapper.querySelector('output')!;
 		filter.field.addEventListener("input", (e: Event) => {
 			const inputField = filter.field as HTMLInputElement;
@@ -197,14 +211,14 @@ export class FilterForm {
 		let filter = new SelectFilterField(id);
 		filter.$formWrapper.innerHTML =	`
 		<label for="${filter.id}">${label}</label>
-		${filter.id === "filter-convertedRetreatCost"?"":`<button class="toggle-expand" type="button">Expand</button>`}
+		<button class="toggle-expand" type="button">Expand</button>
 		<div class="select-container">			
-			<select name="${filter.id}" id="${filter.id}"${multiple?` ${multiple}`:""}>		
+			<select name="${filter.id.replace("filter-", '')}" id="${filter.id}"${multiple?` ${multiple}`:""}>		
 				<option value=""></option>
 			</select>
 		</div>`;
 		options.forEach((op: string) => {
-			filter.field!.innerHTML += `<option value="${op/* .toLowerCase() */.replace(/\s+/g, '-')}">${op}</option>`
+			filter.field!.innerHTML += `<option value="${op/* .toLowerCase() */.replace(/\s+/g, '-')}">${op}</option>`;
 		})
 		
 		if (filter.id !== "filter-convertedRetreatCost") {
@@ -216,7 +230,7 @@ export class FilterForm {
 	createCheckboxFilter(id: string, label: string, options: string[]): FilterField {
 		let filter = new FieldsetFilterField(id);
 		filter.$formWrapper.innerHTML =	`
-		<fieldset name="${filter.id}" id ="${filter.id}">
+		<fieldset name="${filter.id.replace("filter-", '')}" id ="${filter.id}">
 			<legend>${label}</legend>
 		</fieldset>`;
 		options.forEach((op: string) => {
@@ -251,16 +265,26 @@ export class FilterForm {
 		else return ` ${filter}`;
 	}
 	convertToQuery(property: string, requested: string):string {
+		console.log(property);
+		
 		switch (property) {
 			case "filter-legality" :
 				return `legalities.standard:"${requested}"`;
 			case "filter-supertype":
 				if (requested === "Pokemon") requested = "Pokémon";
 				return `!supertype:"${requested}"`;
-			case "filter-name" :
+			case "filter-name-is" :
+				return `name:"${requested}"`;
+			case "filter-name-contains" :
 				return `name:"*${requested}*"`;
-			case "filter-set" :
-				return `set.name:"*${requested}*"`;				
+			case "filter-id-is" :
+				return `id:"${requested}"`;
+			case "filter-id-contains" :
+				return `id:"*${requested}*"`;
+			case "filter-set-is" :
+				return `(set.name:"${requested}" OR set.id:"${requested}")`;
+			case "filter-set-contains" :
+				return `(set.name:"*${requested}*" OR set.id:"*${requested}*")`;
 			case 'filter-weaknesses':
 				return `!weaknesses.type:"${requested}"`;
 			case 'filter-resistances':
@@ -295,7 +319,7 @@ export class FilterForm {
 				else {
 					if (!ff.field.value) return;
 					if (ff.field.multiple === false) {					
-							this.filters += ` ${this.convertToQuery(ff.id, ff.field.value)}`;
+							this.filters += ` ${this.convertToQuery(ff.field.id, ff.field.value)}`;
 							//ex: ff.id = filter-name, ff.field.value = "Pikachu" => name:"Pikachu"
 					} else {
 						const checkedOptions: NodeListOf<HTMLOptionElement> = ff.field.querySelectorAll('div option:checked')!;
@@ -324,7 +348,6 @@ export class FilterForm {
 					const checkedSubtypes: string[] = [];
 					checkedInputs.forEach(input => checkedSubtypes.push(input.id));
 					collection = collection.filter(card => this.checkSubtypes(card, checkedSubtypes));
-					//(API has both "ex" and "EX" as lowercase in subtypes property but includes is case sensitive)
 				} else if (ff.id === 'filter-convertedRetreatCost') {
 					const checkedCosts: number[] = [];
 					checkedInputs.forEach(input => checkedCosts.push(parseInt(input.id)));
@@ -342,7 +365,7 @@ export class FilterForm {
 					if (ff.field.multiple === false) {
 						const value: string = ff.field.value;
 						//typescrit doesn't remember ff.field can't be HTMLFieldSetElement in the switch
-						collection = this.checkCollectionForValue(collection, ff.id, value);
+						collection = this.checkCollectionForValue(collection, ff.field.id, value);
 					} else {
 						const checkedOptions: NodeListOf<HTMLOptionElement> = ff.field.querySelectorAll('div option:checked')!;
 						console.log(checkedOptions);
@@ -362,11 +385,28 @@ export class FilterForm {
 		
 		console.log(id + ' = ' + value);
 		switch (id) {
-			case 'filter-name':
+			case 'filter-name-is':
+				console.log(id + ' = ' + value);
+				collection = collection.filter(card => card.name.toLowerCase() === value.toLowerCase() );
+				break;
+			case 'filter-name-contains':
 				console.log(id + ' = ' + value);
 				collection = collection.filter(card => card.name.toLowerCase().includes(value.toLowerCase()));
 				break;
-			case 'filter-set':
+			case "filter-id-is" :
+				collection = collection.filter(card => card.id === value);
+				break;
+			case "filter-id-contains" :
+				collection = collection.filter(card => card.id.includes(value) );
+				break;
+			case 'filter-set-is':
+				console.log(id + ' = ' + value);
+				collection = collection.filter(card =>
+					value === card.setName.split(" - ")[0]||
+					value === card.setName.split(" - ")[1]||
+					value === card.setName);
+				break;
+			case 'filter-set-contains':
 				console.log(id + ' = ' + value);
 				collection = collection.filter(card => card.setName.includes(value));
 				break;
@@ -416,7 +456,11 @@ export class FilterForm {
 	checkSubtypes(card: CardInCollection, inputs: string[]): boolean {
 		let corresponds: boolean = false;
 		card.subtypes.forEach(subtype => {
-			if (inputs.find((input: string) => input === subtype)) {
+			if (inputs.find((input: string) => {
+				if (input === "EX") input = "ex";
+				//(API has both "ex" and "EX" as lowercase in subtypes property but includes is case sensitive)
+				input === subtype
+			})) {
 				corresponds = true;
 				return true;
 			}
@@ -465,7 +509,7 @@ class InputFilterField extends FilterField{
     	super(id, "input");
     }
 	get field(): HTMLInputElement {
-        return this.$formWrapper.querySelector(`input#${this.id}`)!;
+        return this.$formWrapper.querySelector(`input[id*="${this.id}"]`)!;
     }
 }
 class SelectFilterField extends FilterField{

@@ -390,12 +390,15 @@ div#deck-builder.visible i.fa-pen-to-square{
 	overflow: hidden;
 }
 
+
+
 /* COLLECTION MENU*/
-div#collection-menu {
+div#collection-menu.visible{
 	display: flex;
 	flex-wrap: nowrap;
 	vertical-align: center;
 	text-align: center;
+	border-bottom: 2px black solid;
 }
 div#collection-menu h2 {
 	margin: auto 0;
@@ -410,6 +413,9 @@ div#collection-menu #collection-cards-count{
 div#collection-menu #collection-cards-count > p{
 	width: 25%;
 	border: solid 1px black ;
+}
+.center-div h3 {
+	text-align: center;
 }
 
 

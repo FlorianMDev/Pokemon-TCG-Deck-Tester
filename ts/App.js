@@ -53,7 +53,7 @@ export class App {
         });
         if (this.state !== 'card-list') {
             this.stateManager.$defaultCardListBtn.addEventListener('click', () => __awaiter(this, void 0, void 0, function* () {
-                this.cardListMode();
+                this.defaultCardListMode();
             }));
         }
     }
@@ -99,7 +99,7 @@ export class App {
         this.loadStateManager();
         this.loadFilters();
     }
-    cardListMode() {
+    defaultCardListMode() {
         return __awaiter(this, void 0, void 0, function* () {
             if (this.cardListIsCollection)
                 this.cardListIsCollection = false;
@@ -117,24 +117,28 @@ export class App {
     }
     newCollection() {
         return __awaiter(this, void 0, void 0, function* () {
-            this.state = 'collection-manager';
-            this.updateStateManager();
             this.activeList = new Collection();
             yield this.updateCardList();
             this.loadCollectionMenu(this.activeList);
+            this.state = 'collection-manager';
+            this.updateStateManager();
         });
     }
     loadCollection(collection) {
         return __awaiter(this, void 0, void 0, function* () {
-            this.state = 'collection-manager';
-            this.updateStateManager();
             this.activeList = collection;
             console.log(collection);
             yield this.updateCardList();
             this.loadCollectionMenu(collection);
+            this.state = 'collection-manager';
+            this.updateStateManager();
         });
     }
     loadCollectionMenu(collection) {
+        if (this.state === 'deck-builder') {
+            this.deckBuilder.$wrapper.innerHTML = '';
+            this.deckBuilder.$wrapper.classList.remove('visible');
+        }
         this.collectionMenu = new CollectionMenu(collection);
         this.collectionMenu.render();
         this.addDisplayCollectionBtnListener();
@@ -143,17 +147,21 @@ export class App {
         const $displayToggle = this.collectionMenu.$wrapper.querySelector('button.display-collection');
         $displayToggle.addEventListener('click', (e) => __awaiter(this, void 0, void 0, function* () {
             console.log(this.activeList);
-            $displayToggle.classList.toggle('displayed');
-            if ($displayToggle.classList.contains('displayed')) {
-                $displayToggle.textContent = 'Display all cards';
+            if (!$displayToggle.classList.contains('displayed')) {
                 this.loadDisplayedCollection();
                 console.log('activeList.cards: ' + this.activeList.cards);
+                yield this.searchWithFilters();
+                $displayToggle.classList.toggle('displayed');
+                $displayToggle.textContent = 'Display all cards';
             }
-            else /* if (!$displayToggle.classList.contains('displayed')) */ {
-                $displayToggle.textContent = 'Display collection';
+            else /* if ($displayToggle.classList.contains('displayed')) */ {
                 this.cardListIsCollection = false;
+                yield this.searchWithFilters();
+                const $collectionDisplay = document.querySelector('.center-div h3');
+                $collectionDisplay.outerHTML = '';
+                $displayToggle.classList.toggle('displayed');
+                $displayToggle.textContent = 'Display collection';
             }
-            yield this.searchWithFilters();
         }));
     }
     loadDisplayedCollection() {
@@ -168,6 +176,11 @@ export class App {
             const storedCollection = JSON.parse(collectionJSON);
             this.displayedCollection = new CopiedCollection(storedCollection);
         }
+        const $centerDiv = document.querySelector('.center-div');
+        const $collectionDisplay = document.createElement('h3');
+        $collectionDisplay.innerHTML = `"${this.displayedCollection.name}" collection displayed`;
+        const $cardListCardsData = document.querySelector('.center-div section.cards-data');
+        $centerDiv.insertBefore($collectionDisplay, $cardListCardsData);
     }
     newDeck() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -277,6 +290,8 @@ export class App {
                     }
                     else {
                         this.cardListIsCollection = false;
+                        const $collectionDisplay = document.querySelector('.center-div h3');
+                        $collectionDisplay.outerHTML = '';
                     }
                     yield this.searchWithFilters();
                 }));
