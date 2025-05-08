@@ -70,12 +70,15 @@ export class FilterForm {
         const filterName = this.createInputFilter('filter-name', 'Search by name');
         this._filterFields.push(filterName);
         filterName.field.id = "filter-name-is";
+        filterName.$label.setAttribute("for", "filter-name-is");
         const filterID = this.createInputFilter('filter-id', 'Search by ID');
         this._filterFields.push(filterID);
         filterID.field.id = "filter-id-is";
+        filterID.$label.setAttribute("for", "filter-id-is");
         const filterSets = this.createInputFilter('filter-set', 'Search by sets');
         this._filterFields.push(filterSets);
         filterSets.field.id = "filter-set-is";
+        filterSets.$label.setAttribute("for", "filter-set-is");
         const filterSupertype = this.createSelectFilter('filter-supertype', 'Filter by supertype', this.cardProperties.supertypes);
         this._filterFields.push(filterSupertype);
         const filterSubtype = this.createCheckboxFilter('filter-subtypes', 'Filter by subtype', this.cardProperties.subtypes);
@@ -94,6 +97,7 @@ export class FilterForm {
         const filterRarities = this.createSelectFilter('filter-rarity', 'Filter by rarity', this.cardProperties.rarities);
         this._filterFields.push(filterRarities);
         this.renderAll();
+        this.createSortSelector();
         this.addIsOrContains(filterName);
         this.addIsOrContains(filterID);
         this.addIsOrContains(filterSets);
@@ -161,6 +165,11 @@ export class FilterForm {
                 $output.innerHTML = output;
         });
         //filter.field.addEventListener();
+        return filter;
+    }
+    createNonNullSelectFilter(id, label, options, multiple) {
+        const filter = this.createSelectFilter(id, label, options, multiple);
+        filter.field.removeChild(filter.field.querySelector('option:first-child'));
         return filter;
     }
     createSelectFilter(id, label, options, multiple) {
@@ -310,13 +319,18 @@ export class FilterForm {
                     return collection;
                 if (ff.id === 'filter-subtypes') {
                     const checkedSubtypes = [];
-                    checkedInputs.forEach(input => checkedSubtypes.push(input.id));
+                    checkedInputs.forEach(input => {
+                        if (input.id === "EX")
+                            checkedSubtypes.push("ex");
+                        else
+                            checkedSubtypes.push(input.id);
+                    });
                     collection = collection.filter(card => this.checkSubtypes(card, checkedSubtypes));
                 }
                 else if (ff.id === 'filter-convertedRetreatCost') {
                     const checkedCosts = [];
                     checkedInputs.forEach(input => checkedCosts.push(parseInt(input.id)));
-                    collection = collection.filter(card => checkedCosts.includes(card.convertedRetreatCost));
+                    collection = collection.filter(card => checkedCosts.includes(!!card.convertedRetreatCost ? card.convertedRetreatCost : 0));
                 }
             }
             else {
@@ -372,7 +386,8 @@ export class FilterForm {
             case 'filter-set-is':
                 console.log(id + ' = ' + value);
                 collection = collection.filter(card => value === card.setName.split(" - ")[0] ||
-                    value === card.setName.split(" - ")[1]);
+                    value === card.setName.split(" - ")[1] ||
+                    value === card.setName);
                 break;
             case 'filter-set-contains':
                 console.log(id + ' = ' + value);
@@ -393,15 +408,15 @@ export class FilterForm {
                 break;
             case 'filter-types':
                 console.log(id + ' = ' + value);
-                collection = collection.filter(card => card.types.includes(value));
+                collection = collection.filter(card => !!card.types && card.types.includes(value));
                 break;
             case 'filter-weaknesses':
                 console.log(id + ' = ' + value);
-                collection = collection.filter(card => { var _a; return ((_a = card.weaknesses.find(cw => cw.type === value)) === null || _a === void 0 ? void 0 : _a.type) === value; });
+                collection = collection.filter(card => { var _a; return !!card.weaknesses && ((_a = card.weaknesses.find(cw => cw.type === value)) === null || _a === void 0 ? void 0 : _a.type) === value; });
                 break;
             case 'filter-resistances':
                 console.log(id + ' = ' + value);
-                collection = collection.filter(card => { var _a; return ((_a = card.resistances.find(cw => cw.type === value)) === null || _a === void 0 ? void 0 : _a.type) === value; });
+                collection = collection.filter(card => { var _a; return !!card.resistances && ((_a = card.resistances.find(cw => cw.type === value)) === null || _a === void 0 ? void 0 : _a.type) === value; });
                 break;
             case 'filter-rarity':
                 console.log(id + ' = ' + value);
@@ -424,24 +439,171 @@ export class FilterForm {
         return collection;
     }
     checkSubtypes(card, inputs) {
-        let corresponds = false;
+        let boolean = false;
         card.subtypes.forEach(subtype => {
-            if (inputs.find((input) => {
-                if (input === "EX")
-                    input = "ex";
-                //(API has both "ex" and "EX" as lowercase in subtypes property but includes is case sensitive)
-                input === subtype;
-            })) {
-                corresponds = true;
+            if (inputs.includes(subtype)) {
+                boolean = true;
                 return true;
             }
         });
-        return corresponds;
+        return boolean;
     }
     static capitalize(string) {
         let firstLetter = string[0];
         firstLetter = firstLetter.toUpperCase();
         string = firstLetter + string.slice(1, string.length - 1);
+    }
+    createSortSelector() {
+        this.properties = this.loadProperties();
+        this.orderBy = this.createNonNullSelectFilter('sort-by', 'Sort by', this.properties);
+        this.$formWrapper.prepend(this.orderBy.$formWrapper);
+        this.orderBy.field.id = "sort-by-ascending";
+        this.orderBy.$label.setAttribute("for", "sort-by-ascending");
+        const $selector = document.createElement('select');
+        $selector.id = `sort-order`;
+        $selector.innerHTML = `
+		<option value="ascending">Ascending</option>
+		<option value="descending">Descending</option>
+		`;
+        const orderById = this.orderBy.id;
+        $selector.addEventListener("input", () => {
+            this.orderBy.field.id = `${orderById}-${$selector.value}`;
+            this.orderBy.$label.setAttribute("for", `${this.orderBy.field.id}`);
+        });
+        this.orderBy.$formWrapper.appendChild($selector);
+    }
+    loadProperties() {
+        const properties = [];
+        properties.push("release date");
+        this._filterFields.forEach(ff => {
+            let property = ff.id.replace("filter-", '');
+            if (property === "convertedRetreatCost")
+                property = "retreat cost";
+            properties.push(`${property}`);
+        });
+        return properties;
+    }
+    sortCards() {
+        let descending = '';
+        if (this.orderBy.field.id === 'sort-by-descending')
+            descending = '-';
+        return `${descending}${this.getPropertyForSorting(this.orderBy)}`;
+    }
+    getPropertyForSorting(orderBy) {
+        switch (orderBy.field.value) {
+            case 'release-date':
+                return "set.releaseDate";
+            case 'retreat-cost':
+                return "convertedRetreatCost";
+        }
+        return this.orderBy.field.value;
+    }
+    getOrderByForCollection(a, b, orderBy) {
+        switch (orderBy.field.value) {
+            case 'release-date':
+                return Date.parse(a.releaseDate) - Date.parse(b.releaseDate);
+            case 'legality':
+                if (a.legality > b.legality)
+                    return -1;
+                if (a.legality < b.legality)
+                    return 1;
+                return 0; // > and < inverted because we want "legal" to be before "banned" in ascending (default) order
+            case 'name':
+                if (a.name < b.name)
+                    return -1;
+                if (a.name > b.name)
+                    return 1;
+                return 0;
+            case 'id':
+                if (a.id < b.id)
+                    return -1;
+                if (a.id > b.id)
+                    return 1;
+                return 0;
+            case 'set':
+                if (a.setName < b.setName)
+                    return -1;
+                if (a.setName > b.setName)
+                    return 1;
+                return 0;
+            case 'supertype':
+                let aN = 0;
+                let bN = 0;
+                switch (a.supertype) {
+                    case "Pokémon":
+                        aN = 0;
+                        break;
+                    case "Trainer":
+                        aN = 1;
+                        break;
+                    case "Energy":
+                        aN = 2;
+                        break;
+                }
+                switch (b.supertype) {
+                    case "Pokémon":
+                        bN = 0;
+                        break;
+                    case "Trainer":
+                        bN = 1;
+                        break;
+                    case "Energy":
+                        bN = 2;
+                        break;
+                }
+                return aN - bN;
+            case 'subtypes':
+                if (a.subtypes[0] < b.subtypes[0])
+                    return -1;
+                if (a.subtypes[0] > b.subtypes[0])
+                    return 1;
+                return 0;
+            case 'hp':
+                return (!!a.hp ? a.hp : 0) - (!!b.hp ? b.hp : 0);
+            case 'types':
+                if (!!a.types[0] && (!b.types[0] || //a has a type and b doesn't have one
+                    (!!b.types[0] && a.types[0] < b.types[0]))) // a has a type, b has a higher type
+                    return -1;
+                if (!!b.types[0] && (!a.types[0] || //b has a type and a doesn't have one
+                    (!!a.types[0] && b.types[0] < a.types[0]))) // b has a type, a has a higher type
+                    return 1;
+                return 0;
+            case 'weaknesses':
+                if (!!a.weaknesses[0] && (!b.weaknesses[0] || //a has a weakness and b doesn't have one
+                    (!!b.weaknesses[0] && a.weaknesses[0] < b.weaknesses[0]))) // a has a weakness, b has a higher weaknesse
+                    return -1;
+                if (!!b.weaknesses[0] && (!a.weaknesses[0] || //b has a weakness and a doesn't have one
+                    (!!a.weaknesses[0] && b.weaknesses[0] < a.weaknesses[0]))) // b has a weakness, a has a higher weaknesse
+                    return 1;
+                return 0;
+            case 'resistances':
+                if (!!a.resistances[0] && (!b.resistances[0] || //a has a resistance and b doesn't have one
+                    (!!b.resistances[0] && a.resistances[0] < b.resistances[0]))) // a has a resistance, b has a higher resistance
+                    return -1;
+                if (!!b.resistances[0] && (!a.resistances[0] || //b has a resistance and a doesn't have one
+                    (!!a.resistances[0] && b.resistances[0] < a.resistances[0]))) // b has a resistance, a has a higher resistance
+                    return 1;
+                return 0;
+            case 'retreat-cost':
+                return (!!a.convertedRetreatCost ? a.convertedRetreatCost : 0)
+                    - (!!b.convertedRetreatCost ? b.convertedRetreatCost : 0);
+            case 'rarity':
+                if (a.rarity < b.rarity)
+                    return -1;
+                if (a.rarity > b.rarity)
+                    return 1;
+                return 0;
+            default:
+                return 0;
+        }
+    }
+    sortCollectionCards(cardList) {
+        if (this.orderBy.field.id === 'sort-by-descending') {
+            cardList.sort((a, b) => this.getOrderByForCollection(a, b, this.orderBy) * -1);
+        }
+        else {
+            cardList.sort((a, b) => this.getOrderByForCollection(a, b, this.orderBy));
+        }
     }
 }
 export class FilterField {
@@ -482,7 +644,7 @@ class SelectFilterField extends FilterField {
         super(id, "select");
     }
     get field() {
-        return this.$formWrapper.querySelector(`select#${this.id}`);
+        return this.$formWrapper.querySelector(`select[id*="${this.id}"]`);
     }
 }
 class FieldsetFilterField extends FilterField {

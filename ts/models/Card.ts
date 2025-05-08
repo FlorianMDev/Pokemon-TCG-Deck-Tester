@@ -20,7 +20,7 @@ export interface RawCardData {
 	weaknesses: Weakness[];
 	resistances: Resistance[];
 	retreatCost: string[];
-	convertedRetreatCost: number,
+	convertedRetreatCost?: number,
 	set : Set;
 	number: string;
 	artist: string;
@@ -38,19 +38,20 @@ function isCardData(data: any): data is CardData {
 }
 export class CardData {
 	
-	isCardData: boolean;//Identify as CardData when stored in localStorage and is no longer CardData
+	isCardData: boolean;//To identify as CardData when stored in localStorage and is no longer CardData
+
 	id: string;
 	name: string;
 	supertype: string;
 	subtypes: string[];
-	hp: number;
+	hp?: number;
 	types: string[];
 	ancientTrait?: AncientTrait;
-	abilities?: Ability[];
+	abilities: Ability[];
 	attacks: Attack[];
 	weaknesses: Weakness[];
 	resistances: Resistance[];
-	convertedRetreatCost: number;
+	convertedRetreatCost?: number;
 	rarity: string;
 	images: Images;
 

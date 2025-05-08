@@ -7,10 +7,14 @@ import { Collection } from "../models/Deck.js";
 export class FilterForm {
 	$wrapper: HTMLDivElement;
 	$formWrapper: HTMLFormElement;
+
 	private _filterFields: FilterField[];
 	$filterFieldsDiv: HTMLDivElement;
 	$submitBtn: HTMLButtonElement;
 	filters: string;
+	orderBy?: SelectFilterField;
+	properties?: string[]
+
 	$collectionLoader?: HTMLElement;
 	private _cardProperties: CardProperties | null;
 	
@@ -96,14 +100,17 @@ export class FilterForm {
 		const filterName: InputFilterField = this.createInputFilter('filter-name', 'Search by name');
 		this._filterFields.push(filterName);
 		filterName.field.id = "filter-name-is";
+		filterName.$label.setAttribute("for", "filter-name-is");
 
 		const filterID: InputFilterField = this.createInputFilter('filter-id', 'Search by ID');
 		this._filterFields.push(filterID);
 		filterID.field.id = "filter-id-is";
+		filterID.$label.setAttribute("for", "filter-id-is");
 
 		const filterSets: InputFilterField = this.createInputFilter('filter-set', 'Search by sets');
 		this._filterFields.push(filterSets);
 		filterSets.field.id = "filter-set-is";
+		filterSets.$label.setAttribute("for", "filter-set-is");
 
 		const filterSupertype: FilterField = this.createSelectFilter('filter-supertype', 'Filter by supertype', this.cardProperties!.supertypes);
 		this._filterFields.push(filterSupertype);
@@ -130,6 +137,7 @@ export class FilterForm {
 		const filterRarities: FilterField = this.createSelectFilter('filter-rarity', 'Filter by rarity', this.cardProperties!.rarities);
 		this._filterFields.push(filterRarities);
 		this.renderAll();
+		this.createSortSelector();
 		
 		this.addIsOrContains(filterName);
 		this.addIsOrContains(filterID);
@@ -207,7 +215,12 @@ export class FilterForm {
 
 		return filter;
 	}
-	createSelectFilter(id: string, label: string, options: string[], multiple?: string): FilterField {
+	createNonNullSelectFilter(id: string, label: string, options: string[], multiple?: string): SelectFilterField{
+		const filter = this.createSelectFilter(id, label, options, multiple);
+		filter.field.removeChild(filter.field.querySelector('option:first-child')!);
+		return filter;
+	}
+	createSelectFilter(id: string, label: string, options: string[], multiple?: string): SelectFilterField {
 		let filter = new SelectFilterField(id);
 		filter.$formWrapper.innerHTML =	`
 		<label for="${filter.id}">${label}</label>
@@ -346,12 +359,17 @@ export class FilterForm {
 				if (checkedInputs.length < 1) return collection;
 				if (ff.id === 'filter-subtypes') {
 					const checkedSubtypes: string[] = [];
-					checkedInputs.forEach(input => checkedSubtypes.push(input.id));
+					checkedInputs.forEach(input => {
+						if (input.id === "EX") checkedSubtypes.push("ex")
+						else checkedSubtypes.push(input.id)
+					});
 					collection = collection.filter(card => this.checkSubtypes(card, checkedSubtypes));
 				} else if (ff.id === 'filter-convertedRetreatCost') {
 					const checkedCosts: number[] = [];
 					checkedInputs.forEach(input => checkedCosts.push(parseInt(input.id)));
-					collection = collection.filter(card => checkedCosts.includes(card.convertedRetreatCost) );
+					collection = collection.filter(card =>
+						checkedCosts.includes(!!card.convertedRetreatCost? card.convertedRetreatCost: 0)
+					);
 				}
 			} else {
 				if (ff.type === "checkbox") {
@@ -414,7 +432,7 @@ export class FilterForm {
 				console.log(id + ' = ' + value);
 				if (value === "any") return collection;
 				const HPRange: string[] = value.split(' ');
-				collection = collection.filter(card => card.hp >= parseInt(HPRange[0]) && card.hp <= parseInt(HPRange[2]));
+				collection = collection.filter(card => card.hp! >= parseInt(HPRange[0]) && card.hp! <= parseInt(HPRange[2]));
 				break;
 			case 'filter-supertype':
 				console.log(id + ' = ' + value);
@@ -423,15 +441,15 @@ export class FilterForm {
 				break;
 			case 'filter-types':
 				console.log(id + ' = ' + value);
-				collection = collection.filter(card => card.types.includes(value));
+				collection = collection.filter(card => !!card.types && card.types.includes(value));
 				break;
 			case 'filter-weaknesses':
 				console.log(id + ' = ' + value);
-				collection = collection.filter(card => card.weaknesses.find(cw => cw.type === value)?.type === value);
+				collection = collection.filter(card => !!card.weaknesses && card.weaknesses.find(cw => cw.type === value)?.type === value);
 				break;
 			case 'filter-resistances':
 				console.log(id + ' = ' + value);
-				collection = collection.filter(card => card.resistances.find(cw => cw.type === value)?.type === value);
+				collection = collection.filter(card => !!card.resistances && card.resistances.find(cw => cw.type === value)?.type === value);
 				break;
 			case 'filter-rarity':
 				console.log(id + ' = ' + value);
@@ -454,25 +472,164 @@ export class FilterForm {
 		return collection;
 	}
 	checkSubtypes(card: CardInCollection, inputs: string[]): boolean {
-		let corresponds: boolean = false;
+		let boolean: boolean = false;
 		card.subtypes.forEach(subtype => {
-			if (inputs.find((input: string) => {
-				if (input === "EX") input = "ex";
-				//(API has both "ex" and "EX" as lowercase in subtypes property but includes is case sensitive)
-				input === subtype
-			})) {
-				corresponds = true;
+			if (inputs.includes(subtype)) {
+				boolean = true;
 				return true;
 			}
 		})
-		return corresponds;
+		return boolean;
 	}
 	static capitalize(string: string) {
 		let firstLetter: string = string[0];
 		firstLetter = firstLetter.toUpperCase();
 		string = firstLetter + string.slice(1, string.length-1);
 	}
+
+	createSortSelector() {
+		this.properties = this.loadProperties();
+		this.orderBy = this.createNonNullSelectFilter('sort-by', 'Sort by', this.properties);
+		this.$formWrapper.prepend(this.orderBy.$formWrapper);
+
+		this.orderBy.field.id = "sort-by-ascending";
+		this.orderBy!.$label.setAttribute("for", "sort-by-ascending");
+
+		const $selector: HTMLSelectElement = document.createElement('select');
+		$selector.id = `sort-order`;
+		$selector.innerHTML = `
+		<option value="ascending">Ascending</option>
+		<option value="descending">Descending</option>
+		`;
+		
+		const orderById: string = this.orderBy!.id;
+		$selector.addEventListener("input", () => {
+			this.orderBy!.field.id = `${orderById}-${$selector.value}`;
+			this.orderBy!.$label.setAttribute("for", `${this.orderBy!.field.id}`);
+		})
+		this.orderBy!.$formWrapper.appendChild($selector);
+	}
+	loadProperties():string[] {
+		const properties: string[] = [];
+		
+		properties.push("release date");
+		this._filterFields.forEach(ff => {
+			let property: string = ff.id.replace("filter-", '');
+			if (property === "convertedRetreatCost") property = "retreat cost"
+			properties!.push(`${property}`);
+		})
+		return properties;
+	}
+	sortCards(): string {
+		let descending = '';
+		if (this.orderBy!.field.id === 'sort-by-descending') descending = '-';
+		return `${descending}${this.getPropertyForSorting(this.orderBy!)}`;
+	}
+	getPropertyForSorting(orderBy:SelectFilterField): string {
+		switch (orderBy.field.value) {
+			case 'release-date':
+				return "set.releaseDate";
+			case 'retreat-cost':
+				return "convertedRetreatCost";
+		}
+		return this.orderBy!.field.value;
+	}
+	getOrderByForCollection(a: CardInCollection, b: CardInCollection, orderBy:SelectFilterField): number {
+		switch (orderBy.field.value) {
+			case 'release-date':
+				return Date.parse(a.releaseDate) - Date.parse(b.releaseDate);
+			case 'legality':
+				if (a.legality! > b.legality!) return -1;
+				if (a.legality! < b.legality!) return 1;
+				return 0; // > and < inverted because we want "legal" to be before "banned" in ascending (default) order
+			case 'name':
+				if (a.name < b.name) return -1;
+				if (a.name > b.name) return 1;
+				return 0;
+			case 'id':
+				if (a.id < b.id) return -1;
+				if (a.id > b.id) return 1;
+				return 0;
+			case 'set':
+				if (a.setName < b.setName) return -1;
+				if (a.setName > b.setName) return 1;
+				return 0;
+			case 'supertype':
+				let aN: number = 0;
+				let bN: number = 0;
+				switch (a.supertype) {
+					case "Pokémon":
+						aN = 0;
+						break;
+					case "Trainer":
+						aN = 1;
+						break;
+					case "Energy":
+						aN = 2;
+						break;
+				}
+				switch (b.supertype) {
+					case "Pokémon":
+						bN = 0;
+						break;
+					case "Trainer":
+						bN = 1;
+						break;
+					case "Energy":
+						bN = 2;
+						break;
+				}
+				return aN - bN;
+			case 'subtypes':
+				if (a.subtypes[0] < b.subtypes[0]) return -1;
+				if (a.subtypes[0] > b.subtypes[0]) return 1;
+				return 0;
+			case 'hp':
+				return (!!a.hp? a.hp: 0) - (!!b.hp? b.hp: 0);
+			case 'types':
+				if	(!!a.types[0] && (!b.types[0] || //a has a type and b doesn't have one
+					(!!b.types[0] && a.types![0] < b.types![0]) ))// a has a type, b has a higher type
+					return-1;
+				if	(!!b.types[0] && (!a.types[0] || //b has a type and a doesn't have one
+					(!!a.types[0] && b.types![0] < a.types![0]) ))// b has a type, a has a higher type
+					return 1;
+				return 0;
+			case 'weaknesses':
+				if	(!!a.weaknesses[0] && (!b.weaknesses[0] || //a has a weakness and b doesn't have one
+					(!!b.weaknesses[0] && a.weaknesses![0] < b.weaknesses![0]) ))// a has a weakness, b has a higher weaknesse
+					return-1;
+				if	(!!b.weaknesses[0] && (!a.weaknesses[0] || //b has a weakness and a doesn't have one
+					(!!a.weaknesses[0] && b.weaknesses![0] < a.weaknesses![0]) ))// b has a weakness, a has a higher weaknesse
+					return 1;
+				return 0;
+			case 'resistances':
+				if	(!!a.resistances[0] && (!b.resistances[0] || //a has a resistance and b doesn't have one
+					(!!b.resistances[0] && a.resistances![0] < b.resistances![0]) ))// a has a resistance, b has a higher resistance
+					return-1;
+				if	(!!b.resistances[0] && (!a.resistances[0] || //b has a resistance and a doesn't have one
+					(!!a.resistances[0] && b.resistances![0] < a.resistances![0]) ))// b has a resistance, a has a higher resistance
+					return 1;
+				return 0;
+			case 'retreat-cost':
+				return(!!a.convertedRetreatCost? a.convertedRetreatCost: 0)
+					- (!!b.convertedRetreatCost? b.convertedRetreatCost: 0);
+			case 'rarity':
+				if (a.rarity! < b.rarity!) return -1;
+				if (a.rarity! > b.rarity!) return 1;
+				return 0;
+			default:
+				return 0;
+		}
+	}	
+	sortCollectionCards(cardList: CardInCollection[],) {
+		if (this.orderBy!.field.id === 'sort-by-descending') {
+			cardList.sort((a, b) => this.getOrderByForCollection(a, b, this.orderBy!)*-1);
+		} else {
+			cardList.sort((a, b) => this.getOrderByForCollection(a, b, this.orderBy!));
+		}
+	}
 }
+
 type FilterFieldType = "checkbox" | "input" | "select" | "fieldset";
 export class FilterField {
     id: string;
@@ -517,7 +674,7 @@ class SelectFilterField extends FilterField{
     	super(id, "select");
     }
 	get field(): HTMLSelectElement {
-        return this.$formWrapper.querySelector(`select#${this.id}`)!;
+        return this.$formWrapper.querySelector(`select[id*="${this.id}"]`)!;
     }
 }
 class FieldsetFilterField extends FilterField{

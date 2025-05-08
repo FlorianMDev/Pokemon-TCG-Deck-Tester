@@ -41,6 +41,9 @@ div.page-manager button:hover{
 div.page-manager > div > button {
 	background: linear-gradient(rgb(250, 196, 196) 0 50%, white 50% 100%);
 }
+div.page-manager > div > button:hover {
+	background: linear-gradient(rgb(250, 140, 140) 0 50%, white 50% 100%);
+}
 div.page-manager button.first-page {
 	padding: 0.5rem 0.5rem 0.5rem 1rem;
 	border-radius:  2rem 0 0 2rem;

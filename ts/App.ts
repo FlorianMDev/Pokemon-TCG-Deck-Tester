@@ -20,14 +20,17 @@ export class App {
 	api: Api;
 	cardList: RawCardData[] | CardData[];
 	username: string;
-	
+
 	state: string;
 	stateManager: StateManager;
+
 	page: number;	
 	totalPages?: number;
 	pageManagers: PageManager[];
-	filters?: string;	
+
 	filterForm?: FilterForm;
+	filters: string | null;
+	orderBy: string;
 	
 	deckBuilder?: DeckBuilderManager;
 	collectionMenu?: CollectionMenu;
@@ -46,10 +49,15 @@ export class App {
 		this.username = "";
 
 		this.state = "card-list";
+		this.stateManager = new StateManager(this.state);
+
 		this.page = 1;
 		this.pageManagers = [];
+
+		this.filters = null;
+		this.orderBy = "set.releaseDate";
+
 		this.$cardTemplatesWrapper = document.querySelector('section.cards-data')!;
-		this.stateManager = new StateManager(this.state);
 
 		this.cardListIsCollection = false;
 		this.collectionCardList = [];
@@ -131,17 +139,17 @@ export class App {
 
 	async newCollection() {
 		this.activeList = new Collection();
+		this.state = 'collection-manager';
 		await this.updateCardList();
 		this.loadCollectionMenu(this.activeList as Collection);
-		this.state = 'collection-manager';
 		this.updateStateManager();
 	}
 	async loadCollection(collection: Collection) {
 		this.activeList = collection;
 		console.log(collection);
+		this.state = 'collection-manager';
 		await this.updateCardList();
 		this.loadCollectionMenu(collection);
-		this.state = 'collection-manager';
 		this.updateStateManager();
 	}
 	loadCollectionMenu(collection:Collection) {
@@ -298,19 +306,21 @@ export class App {
 	getFilters() {
 		if (this.cardListIsCollection === false) {
 			this.filters = this.filterForm!.getFilters();
+			this.orderBy = this.filterForm!.sortCards();
 		} else {
-			this.collectionCardList = this.displayedCollection!.cards;
-			this.collectionCardList = this.filterForm!.getCollectionFilters(this.collectionCardList);			
+			this.collectionCardList = Array.from(this.displayedCollection!.cards);
+			this.collectionCardList = this.filterForm!.getCollectionFilters(this.collectionCardList);
+			this.filterForm!.sortCollectionCards(this.collectionCardList);
 		}
 	}
 	async searchWithFilters() {
-		this.getFilters();		
+		this.getFilters();
 		this.page = 1;
 		await this.updateCardList();
 	}
 
-	async fetchCards(page: number, filters?: string): Promise<ApiResult> {
-		return await this.api.getCards(Config.displayedPerPage, page, filters?? "");
+	async fetchCards(page: number, orderBy: string, filters?: string): Promise<ApiResult> {
+		return await this.api.getCards(Config.displayedPerPage, page, orderBy, filters?? "");
 		/* for (let i in cardsData) {
 			this.cardList.push(new CardData(cardsData[i], +i + 1));
 		} */
@@ -319,7 +329,7 @@ export class App {
 		let count: number = 0;
 		let totalCount: number = 0;
 		if (this.cardListIsCollection === false) {
-			const apiData = await this.fetchCards(this.page, this.filters?? "");
+			const apiData = await this.fetchCards(this.page, this.orderBy, this.filters?? "");
 			this.cardList = apiData.data;
 			this.totalPages = Math.ceil(apiData.totalCount / Config.displayedPerPage);
 			
@@ -328,9 +338,10 @@ export class App {
 		}
 		else /* if collection is displayed */ {
 			//Change page, doesn't load filters now
-			this.cardList = this.collectionCardList!;//Change later to take the page into account
+			this.cardList = this.collectionCardList!.slice(this.page*20-20, this.page*20);
 
-			this.totalPages = Math.ceil(this.cardList.length / Config.displayedPerPage);			
+
+			this.totalPages = Math.ceil(this.collectionCardList!.length / Config.displayedPerPage);			
 			count = this.cardList.length < Config.displayedPerPage ? this.cardList.length: Config.displayedPerPage;
 			totalCount = this.collectionCardList!.length;
 		}
@@ -341,6 +352,10 @@ export class App {
 		console.log(this.cardList);
 		this.pageManagers[0].$pageSelectorInput.max = `${this.totalPages!}`;
 		this.pageManagers[1].$pageSelectorInput.value = `${this.page}`;
+	}
+	displayCollectionPage(collection: CardInCollection[]): CardInCollection[] {
+		let collectionPage: CardInCollection[] = collection.slice(this.page*20-20, this.page*20)
+		return collectionPage;
 	}
 
 	displayCards() {

@@ -12,9 +12,10 @@ export class Api {
     constructor(url) {
         this._url = url;
     }
-    getCards(displayedPerPage, page, filters) {
+    getCards(displayedPerPage, page, orderBy, filters) {
         return __awaiter(this, void 0, void 0, function* () {
-            return fetch(`${this._url}/cards?pageSize=${displayedPerPage}&orderBy=set.releaseDate&page=${page}${!!filters ? ` &q=${filters}` : ""}`, { headers: Config.headers })
+            console.log('filters : ' + filters);
+            return fetch(`${this._url}/cards?pageSize=${displayedPerPage}&page=${page}${orderBy.length > 0 ? `&orderBy=${orderBy}` : ""}${!!filters && filters.length > 1 ? `&q=${filters}` : ""}`, { headers: Config.headers })
                 .then(res => res.json())
                 .catch(err => {
                 console.log('an error occurs', err);

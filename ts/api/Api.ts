@@ -15,9 +15,11 @@ export class Api {
 		this._url = url;
 	}
 
-	async getCards(displayedPerPage: number, page: number, filters?: string): Promise<ApiResult> {
+	async getCards(displayedPerPage: number, page: number, orderBy: string, filters?: string): Promise<ApiResult> {
+		console.log('filters : '+filters);
+		
 		return fetch(
-		`${this._url}/cards?pageSize=${displayedPerPage}&orderBy=set.releaseDate&page=${page}${!!filters?` &q=${filters}`:""}`,
+		`${this._url}/cards?pageSize=${displayedPerPage}&page=${page}${orderBy.length > 0 ? `&orderBy=${orderBy}`:""}${!!filters && filters.length > 1?`&q=${filters}`:""}`,
 		{headers: Config.headers})
 			.then(res => res.json())
 			.catch(err => {

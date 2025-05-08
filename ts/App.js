@@ -29,10 +29,12 @@ export class App {
         this.cardList = [];
         this.username = "";
         this.state = "card-list";
+        this.stateManager = new StateManager(this.state);
         this.page = 1;
         this.pageManagers = [];
+        this.filters = null;
+        this.orderBy = "set.releaseDate";
         this.$cardTemplatesWrapper = document.querySelector('section.cards-data');
-        this.stateManager = new StateManager(this.state);
         this.cardListIsCollection = false;
         this.collectionCardList = [];
     }
@@ -118,9 +120,9 @@ export class App {
     newCollection() {
         return __awaiter(this, void 0, void 0, function* () {
             this.activeList = new Collection();
+            this.state = 'collection-manager';
             yield this.updateCardList();
             this.loadCollectionMenu(this.activeList);
-            this.state = 'collection-manager';
             this.updateStateManager();
         });
     }
@@ -128,9 +130,9 @@ export class App {
         return __awaiter(this, void 0, void 0, function* () {
             this.activeList = collection;
             console.log(collection);
+            this.state = 'collection-manager';
             yield this.updateCardList();
             this.loadCollectionMenu(collection);
-            this.state = 'collection-manager';
             this.updateStateManager();
         });
     }
@@ -301,10 +303,12 @@ export class App {
     getFilters() {
         if (this.cardListIsCollection === false) {
             this.filters = this.filterForm.getFilters();
+            this.orderBy = this.filterForm.sortCards();
         }
         else {
-            this.collectionCardList = this.displayedCollection.cards;
+            this.collectionCardList = Array.from(this.displayedCollection.cards);
             this.collectionCardList = this.filterForm.getCollectionFilters(this.collectionCardList);
+            this.filterForm.sortCollectionCards(this.collectionCardList);
         }
     }
     searchWithFilters() {
@@ -314,9 +318,9 @@ export class App {
             yield this.updateCardList();
         });
     }
-    fetchCards(page, filters) {
+    fetchCards(page, orderBy, filters) {
         return __awaiter(this, void 0, void 0, function* () {
-            return yield this.api.getCards(Config.displayedPerPage, page, filters !== null && filters !== void 0 ? filters : "");
+            return yield this.api.getCards(Config.displayedPerPage, page, orderBy, filters !== null && filters !== void 0 ? filters : "");
             /* for (let i in cardsData) {
                 this.cardList.push(new CardData(cardsData[i], +i + 1));
             } */
@@ -328,7 +332,7 @@ export class App {
             let count = 0;
             let totalCount = 0;
             if (this.cardListIsCollection === false) {
-                const apiData = yield this.fetchCards(this.page, (_a = this.filters) !== null && _a !== void 0 ? _a : "");
+                const apiData = yield this.fetchCards(this.page, this.orderBy, (_a = this.filters) !== null && _a !== void 0 ? _a : "");
                 this.cardList = apiData.data;
                 this.totalPages = Math.ceil(apiData.totalCount / Config.displayedPerPage);
                 count = apiData.count;
@@ -336,8 +340,8 @@ export class App {
             }
             else /* if collection is displayed */ {
                 //Change page, doesn't load filters now
-                this.cardList = this.collectionCardList; //Change later to take the page into account
-                this.totalPages = Math.ceil(this.cardList.length / Config.displayedPerPage);
+                this.cardList = this.collectionCardList.slice(this.page * 20 - 20, this.page * 20);
+                this.totalPages = Math.ceil(this.collectionCardList.length / Config.displayedPerPage);
                 count = this.cardList.length < Config.displayedPerPage ? this.cardList.length : Config.displayedPerPage;
                 totalCount = this.collectionCardList.length;
             }
@@ -349,6 +353,10 @@ export class App {
             this.pageManagers[0].$pageSelectorInput.max = `${this.totalPages}`;
             this.pageManagers[1].$pageSelectorInput.value = `${this.page}`;
         });
+    }
+    displayCollectionPage(collection) {
+        let collectionPage = collection.slice(this.page * 20 - 20, this.page * 20);
+        return collectionPage;
     }
     displayCards() {
         this.$cardTemplatesWrapper.innerHTML = "";
